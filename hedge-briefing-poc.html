@@ -1847,16 +1847,31 @@ function showBanner(msg, kind){
 }
 function showFetchError(){ showBanner("Can't reach the server — run launch.bat and try again.", "error"); }
 
+// Render core data now, before any of the UI wiring below runs — a bug in
+// nav-tab/modal/trades wiring must never be able to block the actual
+// briefing content from showing (see git history: it already has once).
+render();
+
+try {
+
 /* ---- public-mirror redaction ----
-   On the GitHub Pages copy (DATA.isPublicBuild), trade data is never even
-   present (trade-log.md/outcomes.md are gitignored, so the CI checkout
-   doesn't have them) — this just removes the UI that would otherwise point
-   at it. Marco's local copy always renders both normally. */
+   On the public GitHub Pages copy (DATA.isPublicBuild, set when
+   GITHUB_ACTIONS=true), trade-log.md/outcomes.md live only in the private
+   Investment-Brief-Engine repo and are never pushed to the public
+   Investment-Brief repo that Pages serves — so this hides the UI that
+   would otherwise point at private trade data. Marco's local copy always
+   renders both normally.
+   NOTE: hide the section, don't remove it — later code (e.g. the
+   #trade-filter button wiring below) unconditionally queries into
+   #view-trades and would throw if it were gone, aborting the rest of this
+   script (including the trailing render() call). Hidden + never populated
+   (refreshTrades()/renderTradesList() only run if the tab is opened, and
+   the tab button itself is removed) is just as private, without the crash. */
 if(DATA.isPublicBuild){
   const tradesTab = document.querySelector('.nav-tab[data-view="trades"]');
   if(tradesTab) tradesTab.remove();
   const tradesView = $("#view-trades");
-  if(tradesView) tradesView.remove();
+  if(tradesView) tradesView.style.display = "none";
   const perfSubtitle = $("#performance-subtitle");
   if(perfSubtitle) perfSubtitle.textContent = "Predictor accuracy — how the App's calls and Ben Cowen's calls have done.";
 }
@@ -2130,7 +2145,9 @@ $("#log-call-save").addEventListener("click", async ()=>{
   }
 });
 
-render();
+} catch(err) {
+  console.error("UI wiring failed (core content above still rendered):", err);
+}
 </script>
 </body>
 </html>
