@@ -684,12 +684,12 @@
 /* DATA_START */
 const DATA = {
   "asset": "BTC",
-  "price": 65508,
+  "price": 65334,
   "ath": {
     "value": 126080,
-    "date": "2025-10-06T10:57:42.000Z"
+    "date": "2025-10-06T18:57:42.558Z"
   },
-  "asOf": "Jul 23, 2026, 08:26 AM UTC",
+  "asOf": "Jul 24, 2026, 08:24 AM UTC",
   "freshness": {
     "level": "warn",
     "text": "Some inputs are stale: Funding rate. Hypothesis still updated (core cycle-position readings were fresh)."
@@ -698,12 +698,12 @@ const DATA = {
     "direction": "Corrective — lower lows into a projected Oct 2026 low",
     "state": "Revised",
     "horizon": "3–6 months",
-    "confidence": 61,
+    "confidence": 64,
     "confidenceNote": "No active conflicts between flagging readings and the cycle model this run.",
-    "narrative": "BTC is at $65,508, ~27 months past the last halving. It topped near $126,080 in Oct 2025. Both lenses rhyme. The ~4-year halving cycle projects a low around Oct 2026 (top + ~370 days). The midterm year is historically the weakest of the political cycle and has tended to bottom near Oct 2026. Weakest year of the political cycle. Markets have historically bottomed near October of the midterm year, followed by a strong 12-month rally — the S&P has not fallen in the 12 months after a midterm low since 1946. Macro backdrop — risk-on flags: NFCI, M2 Trend (YoY).",
+    "narrative": "BTC is at $65,334, ~27 months past the last halving. It topped near $126,080 in Oct 2025. Both lenses rhyme. The ~4-year halving cycle projects a low around Oct 2026 (top + ~370 days). The midterm year is historically the weakest of the political cycle and has tended to bottom near Oct 2026. Weakest year of the political cycle. Markets have historically bottomed near October of the midterm year, followed by a strong 12-month rally — the S&P has not fallen in the 12 months after a midterm low since 1946. Macro backdrop — risk-on flags: NFCI, Net Liquidity Trend (13w), M2 Trend (YoY).",
     "changedSince": "No material change since the last briefing.",
     "invalidation": [
-      "Weekly close back above ~$79,000 (recent range reclaimed) → decline thesis likely over, stop shorting.",
+      "Weekly close back above ~$77,000 (recent range reclaimed) → decline thesis likely over, stop shorting.",
       "MVRV Z-Score back above 4 → market re-heating, corrective thesis void.",
       "A confirmed higher high on the weekly chart → trend has turned up.",
       "Deep capitulation print (NUPL < 0, MVRV Z ≈ 0) → the low may be in; flip from hedging to accumulating."
@@ -744,7 +744,7 @@ const DATA = {
         "sub": "≈ Apr 2028",
         "phase": "—",
         "kind": "anchor",
-        "note": "Projected from current block height (959,236) and the ~10min block target — 90,764 blocks remaining."
+        "note": "Projected from current block height (959,399) and the ~10min block target — 90,601 blocks remaining."
       }
     ],
     "analogue": "You are here ≈ <b>post-top decline — mid-2018 and mid-2022</b>.",
@@ -764,7 +764,22 @@ const DATA = {
       "hi": "> 0.2 · tight / risk-off",
       "context": "Looser than average financial conditions — risk-on tailwind.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.857Z",
+      "asOf": "2026-07-24T08:24:45.040Z",
+      "flagging": true
+    },
+    {
+      "name": "Net Liquidity Trend (13w)",
+      "tf": "WALCL−RRP−TGA",
+      "tier": "macro",
+      "value": "+17.7%",
+      "raw": 0.17651554498239208,
+      "zone": "green",
+      "pos": 1,
+      "lo": "falling · risk-off headwind",
+      "hi": "rising · risk-on tailwind",
+      "context": "Rising — Fed net liquidity (balance sheet minus reverse repo minus TGA) expanding, a risk-on tailwind.",
+      "stale": false,
+      "asOf": "2026-07-24T08:24:45.399Z",
       "flagging": true
     },
     {
@@ -779,52 +794,52 @@ const DATA = {
       "hi": "> 2% YoY · expansion, loosening",
       "context": "Money supply expanding YoY — loosening, risk-on tailwind.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.893Z",
+      "asOf": "2026-07-24T08:24:45.332Z",
       "flagging": true
     },
     {
       "name": "MVRV Z-Score",
       "tf": "cycle",
       "tier": "crypto",
-      "value": "0.47",
-      "raw": 0.4682,
+      "value": "0.45",
+      "raw": 0.4506,
       "zone": "amber",
-      "pos": 0.06688571428571428,
+      "pos": 0.06437142857142857,
       "lo": "0 · undervalued",
       "hi": "7+ · euphoria",
       "context": "Nearer the low band than the high — historically closer to accumulation than distribution.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.896Z",
+      "asOf": "2026-07-24T08:24:44.775Z",
       "flagging": false
     },
     {
       "name": "NUPL",
       "tf": "cycle",
       "tier": "crypto",
-      "value": "0.21",
-      "raw": 0.2052,
+      "value": "0.19",
+      "raw": 0.1948,
       "zone": "amber",
-      "pos": 0.36416,
+      "pos": 0.35584,
       "lo": "<0 · capitulation",
       "hi": ">0.75 · euphoria",
       "context": "Fear band — a declining NUPL off a top is a normal post-top bleed, not necessarily a top forming.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.890Z",
+      "asOf": "2026-07-24T08:24:44.760Z",
       "flagging": false
     },
     {
       "name": "Puell Multiple",
       "tf": "cycle",
       "tier": "crypto",
-      "value": "0.60",
-      "raw": 0.6009,
+      "value": "0.68",
+      "raw": 0.6833,
       "zone": "amber",
-      "pos": 0.08132432432432432,
+      "pos": 0.1035945945945946,
       "lo": "0.3 · miner capitulation",
       "hi": "4 · top zone (no reliable top signal)",
       "context": "Below 1 — miners under pressure.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.924Z",
+      "asOf": "2026-07-24T08:24:44.773Z",
       "flagging": false
     },
     {
@@ -832,14 +847,14 @@ const DATA = {
       "tf": "cycle",
       "tier": "crypto",
       "value": "no cross · 59% gap",
-      "raw": 0.5936726063396791,
+      "raw": 0.5930838310362678,
       "zone": "green",
       "pos": 0,
       "lo": "wide gap",
       "hi": "cross · top signal",
       "context": "Gap between 111DMA and 350DMA×2 — no top signal currently.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:10.125Z",
+      "asOf": "2026-07-24T08:24:45.399Z",
       "flagging": false
     },
     {
@@ -847,14 +862,14 @@ const DATA = {
       "tf": "weekly",
       "tier": "crypto",
       "value": "41",
-      "raw": 41.074546652644585,
+      "raw": 40.5532911058879,
       "zone": "amber",
-      "pos": 0.41074546652644583,
+      "pos": 0.405532911058879,
       "lo": "30 · oversold",
       "hi": "70 · overbought",
       "context": "Below/near midline — room to move either direction.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:10.126Z",
+      "asOf": "2026-07-24T08:24:45.399Z",
       "flagging": false
     },
     {
@@ -867,7 +882,7 @@ const DATA = {
       "pos": 0.35156000000000004,
       "lo": "negative · shorts pay",
       "hi": "high positive · longs crowded",
-      "context": "STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). Last known value as of 2026-07-14T06:14:57.109Z: Positive — longs paying, some crowding risk.",
+      "context": "STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). Last known value as of 2026-07-14T06:14:57.109Z: Positive — longs paying, some crowding risk.",
       "stale": true,
       "asOf": "2026-07-14T06:14:57.109Z",
       "flagging": false
@@ -876,30 +891,30 @@ const DATA = {
       "name": "RHODL Ratio",
       "tf": "cycle",
       "tier": "crypto",
-      "value": "766",
-      "raw": 765.8482,
+      "value": "711",
+      "raw": 710.563,
       "zone": "amber",
-      "pos": 0.3540257184506281,
+      "pos": 0.33775566518546746,
       "lo": "~350 (p10) · bottom accumulation",
       "hi": "~5,000 (p90) · euphoric top",
       "context": "Mid-range — no extreme in holder-cohort behavior right now.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.924Z",
+      "asOf": "2026-07-24T08:24:44.780Z",
       "flagging": false
     },
     {
       "name": "Fear & Greed Index",
       "tf": "daily",
       "tier": "crypto",
-      "value": "31 · Fear",
-      "raw": 31,
+      "value": "28 · Fear",
+      "raw": 28,
       "zone": "amber",
-      "pos": 0.31,
+      "pos": 0.28,
       "lo": "<25 · extreme fear",
       "hi": ">75 · extreme greed",
       "context": "Neither extreme — dormant, not counted as evidence.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.646Z",
+      "asOf": "2026-07-24T08:24:44.772Z",
       "flagging": false
     },
     {
@@ -914,37 +929,22 @@ const DATA = {
       "hi": "≥0.50 · recession very likely started",
       "context": "Below trigger — no recession signal from this indicator right now.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.892Z",
+      "asOf": "2026-07-24T08:24:45.052Z",
       "flagging": false
     },
     {
       "name": "Yield Curve Spread",
       "tf": "10Y-2Y",
       "tier": "macro",
-      "value": "0.36",
-      "raw": 0.36,
+      "value": "0.34",
+      "raw": 0.34,
       "zone": "amber",
-      "pos": 0.46499999999999997,
+      "pos": 0.46,
       "lo": "<0 · inverted",
       "hi": "un-inversion watched separately",
       "context": "Not inverted — normal curve shape.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:10.012Z",
-      "flagging": false
-    },
-    {
-      "name": "Net Liquidity Trend (13w)",
-      "tf": "WALCL−RRP−TGA",
-      "tier": "macro",
-      "value": "-0.6%",
-      "raw": -0.006481710263290455,
-      "zone": "amber",
-      "pos": 0.4675914486835477,
-      "lo": "falling · risk-off headwind",
-      "hi": "rising · risk-on tailwind",
-      "context": "Roughly flat over the trailing 13 weeks.",
-      "stale": false,
-      "asOf": "2026-07-23T08:26:09.905Z",
+      "asOf": "2026-07-24T08:24:45.365Z",
       "flagging": false
     },
     {
@@ -959,12 +959,23 @@ const DATA = {
       "hi": "rising · dollar strength, headwind",
       "context": "Roughly flat over the trailing 13 weeks.",
       "stale": false,
-      "asOf": "2026-07-23T08:26:09.893Z",
+      "asOf": "2026-07-24T08:24:45.381Z",
       "flagging": false
     }
   ],
   "conflict": null,
-  "suggestions": [],
+  "suggestions": [
+    {
+      "archetype": "D",
+      "dir": "Short",
+      "tagline": "Early cycle-window positioning (pre-low)",
+      "entry": 65000,
+      "invalidation": 83000,
+      "target": 32000,
+      "rationale": "Still in Decline with no bounce/breakdown trigger yet, but the convergence low window is ~59 days out. Position short into the final leg down near $65,000; invalidation on a structure reclaim ($83,000). Acting on the cycle read itself, ahead of a price trigger.",
+      "gateReason": "short admitted — not a capitulation spike, not a breakdown into recovery structure"
+    }
+  ],
   "deniedSuggestions": [],
   "gateCautions": [],
   "regime": {
@@ -1075,7 +1086,7 @@ const DATA = {
         "note": "Direction and timing agree (cycle low landing in the same Sep-Nov / late-Sept-to-mid-Oct window). No BTC price levels given in this video to compare against the app's suggestion."
       }
     },
-    "daysSinceLogged": 10,
+    "daysSinceLogged": 11,
     "entryCount": 3,
     "agreementTally": {
       "agree": 3,
@@ -1145,13 +1156,13 @@ const DATA = {
     "resolvedCalls": []
   },
   "rates": {
-    "aaveBorrowAPR": 0.003626,
-    "aaveSupplyAPR": 0.031428,
+    "aaveBorrowAPR": 0.003618,
+    "aaveSupplyAPR": 0.031468,
     "aaveLiqThreshold": 0.78,
     "fundingRate8h": 0.00002734
   },
   "live": true,
-  "generatedAt": "2026-07-23T08:26:09.240Z",
+  "generatedAt": "2026-07-24T08:24:44.137Z",
   "isPublicBuild": true
 };
 /* DATA_END */
