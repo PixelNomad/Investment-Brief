@@ -1,0 +1,2374 @@
+<!--
+  HEDGE BRIEFING — Proof of Concept  (v4: "Desk Memo" — 2a design pass)
+  ---------------------------------------------------------------
+  Decision-support tool (NOT an execution bot). Manual execution only.
+
+  ARCHITECTURE: all numbers live in the DATA object below = the mock layer.
+  hedge-briefing/src/run-daily.js rewrites this file's DATA object in place
+  between its start/end markers (search this file for DATA underscore START
+  and DATA underscore END, kept out of this sentence on purpose so this
+  comment itself can't be mistaken for one of them) — do not rename or
+  restructure DATA's fields here without updating the pipeline that emits
+  them (buildBriefing.js / hypothesis.js / setupArchetypes.js /
+  cycleContext.js / cowenLog.js).
+
+  VISUAL: editorial "desk memo" look (Newsreader serif + IBM Plex Sans/Mono,
+  parchment background) — a presentation-layer pass only; every value below
+  is either a DATA field or a pure client-side derivation of one (reward:risk
+  ratio, ladder positions, "why the target" steps, indicator definitions).
+
+  CYCLE TIMELINE: positions the hypothesis in the ~4yr Bitcoin halving cycle
+  AND the US presidential/midterm macro cycle. Rendered as a vertical
+  chronological list (not a horizontal ribbon) so labels never overlap and
+  no horizontal scrolling is required at any viewport width.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hedge Briefing — BTC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f2ea; --card:#fffdf8; --panel-2:#f2ece0; --ink:#211d16;
+    --line:#e0d8c8; --line-soft:#ece3d2; --line-dash:#ddd3c1;
+    --muted:#8a8070; --muted-2:#6b6353; --faint:#756d5c; --faint-2:#746e61; --faint-3:#726d61;
+    --rust:#a2432f; --gold:#896925; --amber:#9a6a1f;
+    --green:#3f7a4a; --green-bg:#eef3ea;
+    --red-bg:#f7ece8; --red-ink:#906458;
+    --teal:#4a7a76; --teal-bg:#e5efed;
+    --chip:#eae2d2; --chip-warm:#f2e4d0;
+    --radius:10px; --radius-sm:7px;
+    --serif:'Newsreader',serif;
+    --sans:'IBM Plex Sans',system-ui,-apple-system,"Segoe UI",sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:1120px;margin:0 auto;background:var(--bg);box-shadow:0 0 0 1px var(--line)}
+
+  /* ---------- masthead ---------- */
+  .masthead{padding:22px 32px;border-bottom:1px solid var(--line);display:flex;
+    justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+  .masthead-id{display:flex;align-items:center;gap:16px}
+  .masthead-icon{width:42px;height:42px;border-radius:10px;background:var(--ink);
+    display:flex;align-items:center;justify-content:center;font:500 20px var(--serif);color:#e6c877;flex:none}
+  .eyebrow{font:500 10px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint)}
+  .masthead-title{font:500 22px/1.05 var(--serif);margin-top:8px;letter-spacing:-.01em}
+  .masthead-title .sep{color:var(--rust)}
+  .masthead-right{display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+  .mh-price{text-align:right}
+  .mh-price .val{font:600 25px/1 var(--mono);font-variant-numeric:tabular-nums}
+  .mh-price .sub{font:400 11px/1.5 var(--mono);color:var(--muted);margin-top:6px}
+  .mh-price .sub .draw{color:var(--rust)}
+  .mh-live{text-align:right;border-left:1px solid var(--line);padding-left:22px}
+  .mh-live .row{display:flex;align-items:center;gap:7px;justify-content:flex-end;font:400 11px/1.4 var(--mono);color:var(--muted-2)}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--green)}
+  .dot.warn{background:var(--gold)} .dot.stale{background:var(--rust)}
+  .mh-live .asof{font:400 10.5px/1.5 var(--mono);color:var(--faint-2);margin-top:6px}
+
+  .freshness-banner{padding:11px 32px;background:var(--chip-warm);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:10px;font:400 11.5px/1.4 var(--sans);color:var(--amber)}
+  .freshness-banner .dot{background:var(--gold)}
+  .freshness-banner.stale{background:var(--red-bg);color:var(--rust)}
+  .freshness-banner.stale .dot{background:var(--rust)}
+
+  /* ---------- verdict ---------- */
+  .verdict{padding:30px 32px;background:var(--card);border-bottom:1px solid var(--line);
+    display:grid;grid-template-columns:1fr 230px;gap:32px;align-items:start}
+  .verdict-label{font:500 10px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--rust)}
+  .verdict-direction{font:500 30px/1.15 var(--serif);margin-top:11px;letter-spacing:-.01em;max-width:640px}
+  .verdict-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}
+  .badge{font:500 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;
+    border-radius:100px;background:var(--chip);color:var(--muted-2)}
+  .badge.regime{background:var(--chip-warm);color:var(--amber)}
+  .badge.regime.veto{color:var(--rust)}
+  .regime-note{font:400 11.5px/1.5 var(--sans);color:var(--muted);margin-top:9px;max-width:600px}
+  .verdict-narrative{font:400 15px/1.65 var(--serif);color:#3f3a30;margin:18px 0 0;max-width:640px}
+  .verdict-changed{font:400 11.5px/1.5 var(--sans);color:var(--muted);margin-top:12px}
+  .verdict-changed b{color:var(--muted-2);font-weight:600}
+
+  .confidence{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:20px 18px;text-align:center}
+  .confidence-label{font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .confidence-ring{width:118px;height:118px;margin:14px auto 0;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .confidence-ring-inner{width:90px;height:90px;border-radius:50%;background:var(--bg);
+    display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .confidence-ring-inner .val{font:500 32px/1 var(--serif);color:var(--gold)}
+  .confidence-ring-inner .capped{font:500 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+  .confidence-note{font:400 11px/1.5 var(--sans);color:var(--muted);margin-top:14px;text-align:left}
+
+  /* ---------- invalidation strip ---------- */
+  .invalid-strip{padding:20px 32px;border-bottom:1px solid var(--line);background:var(--bg)}
+  .invalid-head{font:500 10px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--rust);margin-bottom:13px}
+  .invalid-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 26px}
+  .invalid-item{display:flex;gap:9px;font:400 13px/1.5 var(--sans);color:#4a453a}
+  .invalid-item .arrow{color:var(--rust);flex:none;font-weight:600}
+
+  /* ---------- two-column layout ---------- */
+  .cols{display:grid;grid-template-columns:1.3fr 1fr}
+  .col-trade{padding:26px 32px;border-right:1px solid var(--line);background:var(--card)}
+  .col-readings{padding:26px 32px;background:var(--bg)}
+  @media (max-width:900px){
+    .cols{grid-template-columns:1fr}
+    .col-trade{border-right:0;border-bottom:1px solid var(--line)}
+  }
+  .sec-label{font:500 10.5px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
+  .sec-sub{font:400 11.5px/1.5 var(--sans);color:var(--muted);margin-bottom:16px}
+
+  /* ---------- setup / trade ---------- */
+  .setup{margin-bottom:36px}
+  .setup:last-child{margin-bottom:0}
+  .setup-head{display:flex;align-items:baseline;gap:11px;flex-wrap:wrap}
+  .setup-title{font:500 21px/1.2 var(--serif)}
+  .tag{font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;
+    border-radius:100px;border:1px solid var(--rust);color:var(--rust)}
+  .tag.arch{border:0;background:var(--chip);color:var(--muted)}
+  .setup-rationale{font:400 13.5px/1.6 var(--sans);color:#4a453a;margin:11px 0 0;max-width:540px}
+  .setup-caution{margin:12px 0 0;padding:10px 13px;border:1px solid var(--gold);border-left:3px solid var(--gold);
+    border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--chip-warm);color:var(--amber);font:400 12.5px/1.55 var(--sans)}
+
+  .setup-body{display:flex;gap:30px;flex-wrap:wrap;margin-top:24px}
+  .ladder-wrap{flex:none;width:220px}
+  .ladder-label{font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:16px}
+  .ladder{position:relative;height:300px;margin-left:8px;border-left:2px solid var(--line)}
+  .ladder-pt{position:absolute;left:0;width:100%;transform:translateY(-50%)}
+  .ladder-dot{position:absolute;top:50%;transform:translateY(-50%);border-radius:50%}
+  .ladder-content{padding-left:17px}
+  .ladder-num{font:600 14px/1.2 var(--mono)}
+  .ladder-sub{font:400 10px/1.35 var(--mono);text-transform:uppercase;letter-spacing:.07em;color:var(--faint-2)}
+  .ladder-bar{position:absolute;left:-1.5px;width:3px}
+  .ladder-break{position:absolute;font:600 12px/1 var(--mono);color:var(--faint-3);background:var(--card);padding:2px 0;left:-8px;transform:translateY(-50%)}
+  .ladder-break-label{position:absolute;left:17px;transform:translateY(-50%);font:400 9.5px/1.3 var(--mono);
+    color:var(--faint-3);text-transform:uppercase;letter-spacing:.06em}
+  .rr-box{margin-top:18px;padding:12px;background:var(--green-bg);border-radius:var(--radius-sm);text-align:center}
+  .rr-box .k{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#7f9a82}
+  .rr-box .v{font:500 26px/1 var(--serif);color:var(--green);margin-top:5px}
+
+  .derivation{flex:1;min-width:240px}
+  .deriv-step{display:flex;gap:13px;margin-bottom:15px}
+  .deriv-step:last-child{margin-bottom:0}
+  .deriv-n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--bg);
+    display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--mono)}
+  .deriv-head{font:600 13px/1.4 var(--sans);color:var(--ink)}
+  .deriv-body{font:400 12.5px/1.55 var(--sans);color:var(--muted-2);margin-top:3px}
+
+  /* ---------- calculator ---------- */
+  .calc{margin-top:26px;padding:22px 24px;background:var(--panel-2);border-radius:var(--radius)}
+  .calc-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+  .calc-title{font:500 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .calc-both{font:400 11px/1 var(--mono);color:var(--faint-2)}
+  .ctrl{margin-bottom:16px}
+  .ctrl label{display:flex;justify-content:space-between;font:400 11.5px/1 var(--sans);color:var(--muted-2);margin-bottom:9px}
+  .ctrl label b{font-family:var(--mono);color:var(--ink)}
+  input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:3px;background:var(--line-dash);
+    border-radius:100px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--rust);cursor:pointer;border:2px solid var(--card)}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--rust);
+    cursor:pointer;border:2px solid var(--card)}
+  input[type=range]:focus-visible{box-shadow:0 0 0 2px var(--rust)}
+  .toggle{display:flex;border:1px solid var(--line-dash);border-radius:var(--radius-sm);overflow:hidden;
+    width:fit-content;background:var(--card)}
+  .toggle button{background:transparent;border:0;border-right:1px solid var(--line-dash);color:var(--muted-2);
+    font-family:var(--mono);font-size:11.5px;padding:8px 14px;cursor:pointer;letter-spacing:.02em}
+  .toggle button:last-child{border-right:0}
+  .toggle button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:600}
+  .toggle button:focus-visible{outline:2px solid var(--rust);outline-offset:-2px}
+  .aave-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+  .aave-fields.hidden{display:none}
+  .field label{display:block;font:400 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .field input[type=number]{width:100%;background:var(--card);border:1px solid var(--line-dash);border-radius:6px;
+    padding:9px 11px;font:400 13px var(--mono);color:var(--ink)}
+  .field input:focus-visible{outline:2px solid var(--rust);outline-offset:-1px;border-color:var(--rust)}
+  .field .hint{font-size:10px;color:var(--faint);margin-top:4px}
+  .calc-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+  .tile{padding:15px 16px;border-radius:8px}
+  .tile.win{background:var(--green-bg)}
+  .tile.loss{background:var(--red-bg)}
+  .tile .k{font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+  .tile.win .k{color:#7f9a82} .tile.loss .k{color:var(--red-ink)}
+  .tile .v{font:500 28px/1 var(--serif);margin-top:8px;font-variant-numeric:tabular-nums}
+  .tile.win .v{color:var(--green)} .tile.loss .v{color:var(--rust)}
+  .tile .sub{font:400 10.5px/1.5 var(--mono);color:var(--muted);margin-top:5px}
+  .calc-lines{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
+  .calc-line{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft);
+    font:400 12px var(--sans);color:var(--muted-2)}
+  .calc-line .v{font-family:var(--mono);color:var(--ink)}
+  .calc-line .v.pos{color:var(--green)} .calc-line .v.neg{color:var(--rust)}
+  .liq-warn{margin-top:12px;font:400 11.5px/1.5 var(--sans);color:var(--rust)}
+  .assump{margin-top:12px;font:400 10.5px/1.55 var(--sans);color:var(--faint)}
+
+  /* ---------- vetoed / empty ---------- */
+  .vetoed{margin-top:28px}
+  .vetoed-head{font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+  .vetoed-item{padding:11px 14px;border:1px dashed var(--line-dash);border-radius:var(--radius-sm);
+    font:400 12px/1.55 var(--sans);color:var(--muted-2);margin-bottom:8px}
+  .vetoed-item:last-child{margin-bottom:0}
+  .vetoed-item .vt{color:var(--ink);font-weight:600}
+  .vetoed-item .vr{display:block;margin-top:4px;color:var(--muted);font-size:11.5px}
+  .vetoed-item .vr b{color:var(--amber);font-weight:600}
+
+  .empty{border:1px dashed var(--line-dash);border-radius:var(--radius);padding:26px;text-align:center;background:var(--bg)}
+  .empty .big{font:500 18px/1.3 var(--serif);color:var(--ink)}
+  .empty .sub{font:400 12.5px/1.55 var(--sans);color:var(--muted);margin-top:8px}
+  .empty-toggle{margin:14px 0 0;font-size:11px;color:var(--faint)}
+  .empty-toggle button{background:none;border:0;color:var(--rust);cursor:pointer;font-family:var(--mono);
+    text-decoration:underline;font-size:11px}
+
+  /* ---------- readings ---------- */
+  .reading{border-bottom:1px solid var(--line-soft)}
+  .reading:last-child{border-bottom:0}
+  .reading-row{display:flex;align-items:center;gap:12px;padding:13px 0;cursor:pointer}
+  .reading-row:focus-visible{outline:2px solid var(--rust);outline-offset:2px}
+  .reading-main{flex:1;min-width:0}
+  .reading-name{display:flex;align-items:baseline;gap:8px}
+  .reading-name .nm{font:600 13.5px/1.2 var(--sans);color:var(--ink)}
+  .reading-name .tf{font:400 10px/1 var(--mono);color:var(--faint-2)}
+  .reading-name .dormant-badge{font:400 8.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+    color:var(--faint-3);border:1px solid var(--line-dash);border-radius:100px;padding:2px 6px}
+  .reading-band{height:5px;border-radius:100px;background:var(--chip);margin-top:8px;position:relative}
+  .reading-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:3px;height:12px;border-radius:2px}
+  .reading-foot{display:flex;justify-content:space-between;margin-top:5px;font:400 9px/1.3 var(--mono);color:var(--faint-2)}
+  .reading-right{flex:none;text-align:right;display:flex;align-items:center;gap:10px}
+  .reading-val{font:600 16px/1 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+  .reading-zone{font:500 9.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-top:5px}
+  .reading-chev{font:400 16px/1 var(--sans);color:var(--faint-2);transition:transform .15s}
+  .reading.expanded .reading-chev{transform:rotate(90deg)}
+  .reading-detail{padding:0 0 16px;animation:rdfade .15s ease}
+  @keyframes rdfade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .reading-detail-inner{padding:14px 15px;background:var(--card);border:1px solid var(--line-soft);border-radius:8px}
+  .reading-detail-label{font:500 9px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .reading-detail-label.why{color:var(--rust);margin-top:13px}
+  .reading-detail-body{font:400 12.5px/1.6 var(--sans);color:#4a453a}
+  .dormant-toggle{display:block;width:100%;margin-top:8px;padding:11px 13px;background:none;
+    border:1px dashed var(--line-dash);border-radius:var(--radius-sm);color:var(--faint);
+    font-family:var(--sans);font-size:11.5px;letter-spacing:.02em;text-align:center;cursor:pointer}
+  .dormant-toggle:hover{color:var(--muted-2)}
+  .dormant-toggle:focus-visible{outline:2px solid var(--rust);outline-offset:2px}
+  #dormant-readings{margin-top:2px}
+  .conflict{margin-top:16px;padding:12px 15px;background:var(--chip-warm);border-radius:var(--radius-sm);
+    font:400 12px/1.55 var(--sans);color:var(--muted-2)}
+  .conflict b{color:var(--amber)}
+
+  /* ---------- ITC/Cowen ---------- */
+  .cowen-section{padding:28px 32px;border-top:1px solid var(--line)}
+  .cowen-head-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+  .cowen-eyebrow{font:500 10.5px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal)}
+  .cowen-eyebrow-sub{font:400 11.5px/1 var(--sans);color:var(--faint)}
+  .cowen-desc{font:400 11.5px/1.5 var(--sans);color:var(--muted);margin-bottom:16px}
+  .cowen-desc b{color:var(--teal);font-weight:600}
+  .cowen-box{border:1px dashed var(--teal);border-radius:var(--radius);background:var(--bg);overflow:hidden}
+  .cowen-box-head{padding:18px 22px;border-bottom:1px dashed var(--line-dash);display:flex;
+    justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .cowen-video-title{font:500 16px/1.3 var(--serif);color:var(--ink)}
+  .cowen-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .cowen-pill{font:500 9.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;
+    border-radius:100px;background:var(--teal-bg);color:var(--teal)}
+  .cowen-pill.mut{font-weight:400;background:var(--chip);color:var(--muted)}
+  .cowen-agree{text-align:right;flex:none}
+  .cowen-agree-pill{display:inline-block;font:500 9.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;
+    padding:5px 10px;border-radius:100px;border:1px solid}
+  .cowen-agree-pill.agree{color:var(--green);border-color:var(--green);background:var(--green-bg)}
+  .cowen-agree-pill.conflict{color:var(--rust);border-color:var(--rust);background:var(--red-bg)}
+  .cowen-agree-pill.orthogonal,.cowen-agree-pill.not_yet_compared{color:var(--faint);border-color:var(--line-dash);background:var(--card)}
+  .cowen-age{font:400 10.5px/1.4 var(--mono);color:var(--faint);margin-top:8px}
+  .cowen-age.stale{color:var(--amber)}
+  .cowen-body{padding:18px 22px}
+  .cowen-note{font:400 13.5px/1.6 var(--sans);color:#4a453a;max-width:720px}
+  .cowen-compare{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px}
+  .compare-label{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px}
+  .compare-label.cowen{color:var(--teal)}
+  .compare-label.app{color:var(--faint)}
+  .cowen-level-row{display:flex;gap:11px;align-items:baseline;margin-bottom:9px}
+  .cowen-level-row:last-child{margin-bottom:0}
+  .cowen-level-price{flex:none;min-width:70px;font:600 13px/1.3 var(--mono)}
+  .cowen-level-type{flex:none;font:500 9px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding-top:2px}
+  .cowen-level-note{font:400 11.5px/1.45 var(--sans);color:var(--muted)}
+  .app-level-row{display:flex;justify-content:space-between;gap:12px;padding-bottom:8px;
+    border-bottom:1px solid var(--line-soft);margin-bottom:8px}
+  .app-level-row:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+  .app-level-row .k{font:400 12px/1.3 var(--sans);color:var(--muted-2)}
+  .app-level-row .v{font:600 13px/1.3 var(--mono)}
+  .cowen-compare-note{margin-top:12px;padding:11px 13px;border-radius:7px;font:400 12px/1.55 var(--sans);color:#4a453a}
+  .cowen-indicators{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line-dash)}
+  .cowen-indicators-label{font:500 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:11px}
+  .cowen-indicators-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px}
+  .cowen-ind-row{display:flex;justify-content:space-between;gap:12px;font:400 11.5px/1.5 var(--sans)}
+  .cowen-ind-row .n{color:#4a453a}
+  .cowen-ind-row .v{font-family:var(--mono);color:var(--muted);text-align:right}
+  .cowen-footer{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line-dash);display:flex;
+    justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end}
+  .cowen-tally{font:400 11px/1.9 var(--sans);color:var(--muted)}
+  .cowen-tally .k{color:var(--faint)}
+  .cowen-source-link{font:400 11px/1 var(--mono);color:var(--teal);text-decoration:underline}
+  .cowen-ready{margin-top:13px;padding:9px 12px;border:1px dashed var(--gold);border-radius:var(--radius-sm);
+    font:400 11px/1.5 var(--sans);color:var(--amber)}
+
+  /* ---------- cycle timeline ---------- */
+  .cycle-section{padding:28px 32px;border-top:1px solid var(--line);background:var(--card)}
+  .cycle-list{position:relative;padding-left:30px}
+  .cycle-list::before{content:"";position:absolute;left:8px;top:6px;bottom:6px;width:1px;background:var(--line)}
+  .cyc-row{position:relative;padding-bottom:22px}
+  .cyc-row:last-child{padding-bottom:0}
+  .cyc-row .cyc-dot{position:absolute;left:-30px;top:4px;width:11px;height:11px;border-radius:50%;
+    background:var(--card);border:2px solid var(--line-dash)}
+  .cyc-row.now .cyc-dot{border-color:var(--rust);background:var(--rust)}
+  .cyc-row.window .cyc-dot{border-color:var(--gold);background:transparent;border-style:dashed}
+  .cyc-rowhead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .cyc-lab{font:500 14px/1.2 var(--sans);color:var(--ink)}
+  .cyc-row.now .cyc-lab{color:var(--rust)}
+  .cyc-row.window .cyc-lab{color:var(--amber)}
+  .cyc-sub{font:400 11px/1.3 var(--mono);color:var(--faint)}
+  .cyc-phase{display:inline-block;margin-top:6px;font:400 9.5px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;
+    color:var(--faint);padding:2px 7px;border:1px solid var(--line-dash);border-radius:100px}
+  .cyc-note{font:400 12.5px/1.55 var(--sans);color:var(--muted-2);margin-top:7px;max-width:640px}
+  .cycle-foot{margin-top:20px;padding-top:18px;border-top:1px solid var(--line-soft);display:grid;
+    grid-template-columns:1fr 1fr;gap:24px}
+  .cyc-read{font:400 13px/1.6 var(--sans);color:#4a453a}
+  .cyc-caveat{padding:12px 15px;border:1px dashed var(--line-dash);border-radius:var(--radius-sm);
+    font:400 11.5px/1.55 var(--sans);color:var(--muted)}
+  .cyc-caveat b{color:var(--amber)}
+  @media (max-width:700px){.cycle-foot{grid-template-columns:1fr}}
+
+  /* ---------- footer ---------- */
+  .footer{padding:20px 32px 28px;background:var(--panel-2)}
+  .sources{font:400 11px/1.8 var(--sans);color:var(--muted)}
+  .sources code{font-family:var(--mono);color:var(--muted-2);font-size:11px}
+  .disclaimer{margin-top:14px;font:400 10.5px/1.6 var(--sans);color:var(--muted)}
+  .disclaimer b{color:var(--amber)}
+
+  @media (max-width:700px){
+    .masthead{padding:18px 20px}
+    .masthead-right{width:100%;justify-content:space-between}
+    .mh-live{text-align:right}
+    .verdict{padding:22px 20px;grid-template-columns:1fr}
+    .invalid-strip{padding:16px 20px}
+    .invalid-grid{grid-template-columns:1fr}
+    .col-trade,.col-readings{padding:20px}
+    .cowen-section,.cycle-section,.footer{padding:20px}
+    .cowen-compare{grid-template-columns:1fr}
+    .cowen-indicators-grid{grid-template-columns:1fr}
+    .setup-body{flex-direction:column}
+    .ladder-wrap{width:100%}
+    .calc-tiles,.calc-lines,.aave-fields{grid-template-columns:1fr}
+    /* touch targets — design review Pass 6: .btn.small drives "Mark as taken" /
+       "Close trade", where a mis-tap writes a bad entry to the trade log */
+    .btn.small{min-height:44px;padding:0 14px;display:inline-flex;align-items:center}
+    .float-add{min-height:44px;min-width:44px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* ---------- tracking delta: nav tabs + views ---------- */
+  .nav-tabs{display:flex;gap:2px;padding:0 32px;border-bottom:1px solid var(--line);background:var(--panel-2)}
+  .nav-tab{font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted-2);
+    padding:14px 16px;cursor:pointer;border-bottom:2px solid transparent;background:none;border-left:0;border-right:0;border-top:0}
+  .nav-tab[aria-selected=true]{color:var(--rust);border-bottom-color:var(--rust);font-weight:600}
+  .nav-tab:hover{color:var(--ink)}
+  .nav-tab:focus-visible{outline:2px solid var(--rust);outline-offset:-2px}
+  .view{display:none}
+  .view.active{display:block}
+  .view-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:22px}
+
+  /* ---------- tracking delta: buttons + predictor/status/outcome/wobble pills ---------- */
+  .btn{font:500 11px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;
+    border-radius:var(--radius-sm);border:1px solid var(--rust);color:var(--rust);background:none;cursor:pointer}
+  .btn:hover{background:var(--chip-warm)}
+  .btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .btn.primary:hover{opacity:.88;background:var(--ink)}
+  .btn.ghost{border-color:var(--line-dash);color:var(--muted-2)}
+  .btn.small{padding:6px 11px;font-size:10px}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn:focus-visible{outline:2px solid var(--rust);outline-offset:1px}
+  .predictor-pill{font:500 9.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;
+    border-radius:100px;background:var(--chip);color:var(--muted-2)}
+  .predictor-pill.cowen{background:var(--teal-bg);color:var(--teal)}
+  .status-pill{font:500 9.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;
+    border-radius:100px;border:1px solid}
+  .status-pill.active{color:var(--green);border-color:var(--green);background:var(--green-bg)}
+  .status-pill.closed{color:var(--muted);border-color:var(--line-dash);background:var(--chip)}
+  .outcome-pill{font:500 9.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;
+    border-radius:100px;border:1px solid}
+  .outcome-pill.hit{color:var(--green);border-color:var(--green);background:var(--green-bg)}
+  .outcome-pill.miss{color:var(--rust);border-color:var(--rust);background:var(--red-bg)}
+  .outcome-pill.mixed{color:var(--faint);border-color:var(--line-dash);background:var(--card)}
+  .wobble-chip{font:500 9.5px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:100px}
+  .wobble-chip.stable{background:var(--green-bg);color:var(--green)}
+  .wobble-chip.adjusted{background:var(--chip-warm);color:var(--amber)}
+  .wobble-chip.reversed{background:var(--red-bg);color:var(--rust)}
+  .ledger-filter{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:16px 0}
+  .ledger-filter select{background:var(--card);border:1px solid var(--line-dash);border-radius:6px;
+    padding:7px 10px;font:400 12px var(--mono);color:var(--ink)}
+  .ledger-filter select:focus-visible{outline:2px solid var(--rust);outline-offset:-1px}
+
+  /* ---------- tracking delta: My Trades ---------- */
+  .trade-filter{display:flex;border:1px solid var(--line-dash);border-radius:var(--radius-sm);overflow:hidden;
+    width:fit-content;background:var(--card)}
+  .trade-filter button{background:transparent;border:0;border-right:1px solid var(--line-dash);color:var(--muted-2);
+    font-family:var(--mono);font-size:11px;padding:8px 14px;cursor:pointer;letter-spacing:.04em;text-transform:uppercase}
+  .trade-filter button:last-child{border-right:0}
+  .trade-filter button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:600}
+  .trade-card{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);
+    padding:18px 20px;margin-bottom:14px}
+  .trade-card:last-child{margin-bottom:0}
+  .trade-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .trade-id{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .trade-title{font:500 17px/1.2 var(--serif)}
+  .trade-dates{font:400 10.5px/1.4 var(--mono);color:var(--faint-2);margin-top:6px}
+  .trade-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft)}
+  .trade-field .k{font:500 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .trade-field .v{font:600 14px/1.2 var(--mono);color:var(--ink)}
+  .trade-field .orig{font:400 10.5px/1.4 var(--mono);color:var(--faint-2);margin-top:3px}
+  .trade-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+  .trade-locked-note{margin-top:14px;font:400 11px/1.5 var(--sans);color:var(--faint);font-style:italic}
+  .take-row{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft)}
+  .take-inline{margin-top:14px;padding:16px 18px;background:var(--panel-2);border-radius:var(--radius-sm);display:none}
+  .take-inline.open{display:block}
+  .take-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .take-fields label{display:block;font:400 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .take-fields input{width:100%;background:var(--card);border:1px solid var(--line-dash);border-radius:6px;
+    padding:9px 11px;font:400 13px var(--mono);color:var(--ink)}
+
+  /* ---------- tracking delta: Performance ---------- */
+  .stat-tiles{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:26px}
+  .stat-tile{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);padding:20px 22px}
+  .stat-tile-head{display:flex;justify-content:space-between;align-items:baseline}
+  .stat-tile-n{font:500 9px/1 var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+  .stat-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px}
+  .stat-big{font:500 34px/1 var(--serif);color:var(--ink)}
+  .stat-label{font:400 11px/1.4 var(--sans);color:var(--muted);text-align:right;max-width:120px}
+  .wobble-split{display:flex;gap:7px;margin-top:16px;flex-wrap:wrap}
+  .perf-filter-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+  .perf-detail-inner{padding:16px 18px;background:var(--card);border:1px solid var(--line-soft);border-radius:8px;margin-top:2px}
+  .perf-fact-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font:400 12.5px/1.5 var(--sans);color:#4a453a}
+  .perf-fact .k{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-family:var(--mono)}
+  .perf-revlog{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line-dash);font:400 11.5px/1.6 var(--mono);color:var(--muted-2)}
+  .perf-table-wrap{overflow-x:auto}
+  .perf-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
+  .perf-table thead th{font:500 9.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);
+    text-align:left;padding:0 10px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .perf-row{cursor:pointer}
+  .perf-row:hover{background:var(--panel-2)}
+  .perf-row td{padding:11px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;white-space:nowrap}
+  .perf-row td.perf-call{white-space:normal}
+  .perf-call{font:500 13px/1.3 var(--sans);color:var(--ink)}
+  .mono{font-family:var(--mono)}
+  .perf-row .perf-chev{color:var(--faint-2);text-align:right;display:inline-block;transition:transform .15s}
+  .perf-row.expanded .perf-chev{transform:rotate(90deg)}
+  .perf-detail-row{display:none}
+  .perf-detail-row.open{display:table-row}
+  .perf-detail-row td{padding:0 10px 16px;border-bottom:1px solid var(--line-soft)}
+  .perf-table-note{font:400 11px/1.5 var(--sans);color:var(--faint);margin-top:6px;margin-bottom:22px}
+  .caveat{padding:12px 15px;border:1px dashed var(--line-dash);border-radius:var(--radius-sm);
+    font:400 11.5px/1.55 var(--sans);color:var(--muted);margin-bottom:18px}
+  .caveat b{color:var(--amber)}
+  .pnl-section{margin-top:32px;padding-top:24px;border-top:1px dashed var(--teal)}
+  .pnl-eyebrow{font:500 10.5px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal);margin-bottom:6px}
+  .perf-mag{font:600 13px/1 var(--mono)}
+  .perf-mag.pos{color:var(--green)} .perf-mag.neg{color:var(--rust)}
+
+  /* ---------- tracking delta: Log Call modal ---------- */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(33,29,22,.4);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+  .modal-backdrop.open{display:flex}
+  .modal{background:var(--card);border-radius:var(--radius);max-width:480px;width:100%;padding:26px 28px;
+    box-shadow:0 12px 40px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+  .modal-head{font:500 20px/1.2 var(--serif);margin-bottom:4px}
+  .modal-sub{font:400 11.5px/1.5 var(--sans);color:var(--muted);margin-bottom:20px}
+  .modal .field{margin-bottom:14px}
+  .modal .field label{display:block;font:400 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .modal .field input,.modal .field select,.modal .field textarea{width:100%;background:var(--bg);border:1px solid var(--line-dash);
+    border-radius:6px;padding:9px 11px;font:400 13px var(--sans);color:var(--ink);font-family:var(--sans)}
+  .modal .field input:focus-visible,.modal .field select:focus-visible,.modal .field textarea:focus-visible{outline:2px solid var(--rust);outline-offset:-1px}
+  .modal .field textarea{font-family:var(--sans);min-height:60px;resize:vertical}
+  .modal-toggle{display:flex;border:1px solid var(--line-dash);border-radius:var(--radius-sm);overflow:hidden;width:fit-content;flex-wrap:wrap}
+  .modal-toggle button{background:transparent;border:0;border-right:1px solid var(--line-dash);color:var(--muted-2);
+    font-family:var(--mono);font-size:11.5px;padding:8px 14px;cursor:pointer}
+  .modal-toggle button:last-child{border-right:0}
+  .modal-toggle button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:600}
+  .modal-toggle button:focus-visible{outline:2px solid var(--rust);outline-offset:-2px}
+  .modal-note{font:400 10.5px/1.55 var(--sans);color:var(--faint);margin:14px 0 18px}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px}
+  .modal-error{font:400 11.5px/1.5 var(--sans);color:var(--rust);margin-bottom:14px;display:none}
+  .float-add{position:fixed;bottom:28px;right:28px;z-index:5}
+
+  /* ---------- tracking delta: action banner (success/error feedback —
+     never a native alert(), which blocks the page and jars against the
+     rest of the app's editorial tone; also covers the file:// fallback UX) ---------- */
+  .action-banner{position:fixed;bottom:28px;left:28px;right:100px;max-width:420px;padding:13px 16px;
+    border-radius:var(--radius-sm);font:400 12.5px/1.5 var(--sans);display:none;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+  .action-banner.open{display:block}
+  .action-banner.error{background:var(--red-bg);border:1px solid var(--rust);color:var(--rust)}
+  .action-banner.success{background:var(--green-bg);border:1px solid var(--green);color:var(--green)}
+
+  @media (max-width:800px){
+    .trade-grid{grid-template-columns:1fr 1fr}
+    .stat-tiles{grid-template-columns:1fr}
+    .perf-fact-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-id">
+      <div class="masthead-icon">₿</div>
+      <div>
+        <div class="eyebrow">Hedge Briefing · Medium-term</div>
+        <div class="masthead-title"><span id="mh-asset">BTC</span> <span class="sep">/</span> USD</div>
+      </div>
+    </div>
+    <div class="masthead-right">
+      <div class="mh-price">
+        <div class="val" id="price">$—</div>
+        <div class="sub" id="ath"></div>
+      </div>
+      <div class="mh-live">
+        <div class="row"><span class="dot" id="live-dot"></span><span id="live-label">Live</span></div>
+        <div class="asof" id="asof">as of —</div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav-tabs" role="tablist">
+    <button class="nav-tab" role="tab" data-view="briefing" aria-selected="true">Briefing</button>
+    <button class="nav-tab" role="tab" data-view="trades" aria-selected="false">My Trades</button>
+    <button class="nav-tab" role="tab" data-view="performance" aria-selected="false">Performance</button>
+  </nav>
+
+  <section class="view active" id="view-briefing">
+
+  <div class="freshness-banner" id="freshness-banner" style="display:none">
+    <span class="dot" id="freshness-dot"></span><span id="freshness-text"></span>
+  </div>
+
+  <div class="verdict">
+    <div>
+      <div class="verdict-label">Current view</div>
+      <div class="verdict-direction" id="hypo-direction">—</div>
+      <div class="verdict-badges" id="hypo-badges"></div>
+      <div class="regime-note" id="regime-note"></div>
+      <p class="verdict-narrative" id="hypo-narrative"></p>
+      <div class="verdict-changed" id="hypo-changed"></div>
+    </div>
+    <div class="confidence">
+      <div class="confidence-label">Confidence</div>
+      <div class="confidence-ring" id="confidence-ring">
+        <div class="confidence-ring-inner">
+          <div class="val" id="hypo-conf">—</div>
+          <div class="capped">capped</div>
+        </div>
+      </div>
+      <div class="confidence-note" id="hypo-conf-note"></div>
+    </div>
+  </div>
+
+  <div class="invalid-strip">
+    <div class="invalid-head">This view is wrong if —</div>
+    <div class="invalid-grid" id="hypo-invalidation"></div>
+  </div>
+
+  <div class="cols">
+    <div class="col-trade">
+      <div class="sec-label">Setup(s) valid now</div>
+      <div id="trade"></div>
+    </div>
+    <div class="col-readings">
+      <div class="sec-label">The readings</div>
+      <div class="sec-sub">Click any metric for what it is &amp; why it matters. Only
+        <b style="color:#4a453a;font-weight:600">flagging</b> metrics count toward the view.</div>
+      <div id="readings"></div>
+      <div class="conflict" id="conflict" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="cowen-section">
+    <div class="cowen-head-row">
+      <div class="cowen-eyebrow">ITC / Cowen cross-reference</div>
+      <div class="cowen-eyebrow-sub">an outside expert read, checked against our view</div>
+    </div>
+    <div class="cowen-desc"><b>Human commentary</b> — logged by hand after each video. Never feeds the model's math; it's a sanity check, not an input.</div>
+    <div class="cowen-box" id="cowen"></div>
+  </div>
+
+  <div class="cycle-section">
+    <div class="sec-label">Cycle timeline</div>
+    <div id="cycle"></div>
+  </div>
+
+  <div class="footer">
+    <div class="sources" id="sources"></div>
+    <div class="disclaimer" id="disclaimer"></div>
+  </div>
+
+  </section>
+
+  <!-- ============ MY TRADES ============ -->
+  <section class="view" id="view-trades">
+    <div class="view-head">
+      <div>
+        <div class="sec-label">My Trades</div>
+        <div class="sec-sub" style="margin-bottom:0">Every entry here started as "Mark as taken" on a Suggestion. Nothing here is auto-executed.</div>
+      </div>
+      <div class="trade-filter" id="trade-filter" role="group" aria-label="Filter trades">
+        <button data-filter="active" aria-pressed="true">Active</button>
+        <button data-filter="closed" aria-pressed="false">Closed</button>
+        <button data-filter="all" aria-pressed="false">All</button>
+      </div>
+    </div>
+    <div id="trades-list"></div>
+  </section>
+
+  <!-- ============ PERFORMANCE ============ -->
+  <section class="view" id="view-performance">
+    <div class="view-head">
+      <div>
+        <div class="sec-label">Performance</div>
+        <div class="sec-sub" id="performance-subtitle" style="margin-bottom:0">Predictor accuracy — kept separate from your own trade P&amp;L (below).</div>
+      </div>
+    </div>
+    <div id="performance-body"></div>
+  </section>
+
+  <!-- ============ LOG CALL MODAL ============ -->
+  <div class="modal-backdrop" id="log-call-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="log-call-heading" id="log-call-modal">
+      <div class="modal-head" id="log-call-heading">Log a call</div>
+      <div class="modal-sub">For Ben Cowen (or another external predictor) stating a view outside the app.</div>
+
+      <div class="modal-error" id="log-call-error"></div>
+
+      <div class="field">
+        <label for="lc-predictor">Predictor</label>
+        <select id="lc-predictor"><option>Ben Cowen</option></select>
+      </div>
+      <div class="field">
+        <label for="lc-asset">Asset</label>
+        <select id="lc-asset"><option>BTC</option><option>ETH</option></select>
+      </div>
+      <div class="field">
+        <label id="lc-direction-label">Direction</label>
+        <div class="modal-toggle" role="group" aria-labelledby="lc-direction-label" id="lc-direction">
+          <button type="button" data-dir="bullish" aria-pressed="true">Bullish</button>
+          <button type="button" data-dir="bearish" aria-pressed="false">Bearish</button>
+          <button type="button" data-dir="neutral" aria-pressed="false">Neutral</button>
+          <button type="button" data-dir="mixed" aria-pressed="false">Mixed</button>
+        </div>
+      </div>
+      <div class="field"><label for="lc-target">Price target (optional)</label><input type="number" id="lc-target" placeholder="e.g. 95000"></div>
+      <div class="field"><label for="lc-timeline">Timeline / horizon (optional)</label><input type="text" id="lc-timeline" placeholder="e.g. by Q3 2026"></div>
+      <div class="field"><label for="lc-notes">Notes</label><textarea id="lc-notes" placeholder="What he actually said, in his framing"></textarea></div>
+      <div class="field"><label for="lc-asof">As-of date</label><input type="date" id="lc-asof"></div>
+      <div class="field"><label for="lc-conviction">Conviction</label>
+        <select id="lc-conviction"><option value="high">High</option><option value="medium" selected>Medium</option><option value="low">Low</option></select>
+      </div>
+      <div class="field"><label for="lc-resolution">Resolution check-in date</label><input type="date" id="lc-resolution"></div>
+      <div class="field"><label for="lc-title">Title (optional)</label><input type="text" id="lc-title" placeholder="auto-generated if left blank"></div>
+      <div class="field"><label for="lc-source">Source URL (optional)</label><input type="text" id="lc-source" placeholder="https://..."></div>
+
+      <div class="modal-note">Saves a quick entry — direction, target, timeline, conviction. Price levels, indicators, and how it compares to the App's Hypothesis are left blank for you to fill in by hand afterward, same as any other entry in this file.</div>
+
+      <div class="modal-actions">
+        <button class="btn ghost" id="log-call-cancel">Cancel</button>
+        <button class="btn primary" id="log-call-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn primary float-add" id="log-call-open" aria-haspopup="dialog">+ Log a call</button>
+
+  <div class="action-banner" id="action-banner" role="status"></div>
+
+</div>
+
+<script>
+/* =====================================================================
+   DATA LAYER — replace SAMPLE values with live API responses.
+   ===================================================================== */
+/* DATA_START */
+const DATA = {
+  "asset": "BTC",
+  "price": 64616,
+  "ath": {
+    "value": 126080,
+    "date": "2025-10-06T10:57:42.000Z"
+  },
+  "asOf": "Jul 26, 2026, 02:42 PM UTC",
+  "freshness": {
+    "level": "warn",
+    "text": "Some inputs are stale: Funding rate. Hypothesis still updated (core cycle-position readings were fresh)."
+  },
+  "hypothesis": {
+    "direction": "Corrective — lower lows into a projected Oct 2026 low",
+    "state": "Revised",
+    "horizon": "3–6 months",
+    "confidence": 64,
+    "confidenceNote": "No active conflicts between flagging readings and the cycle model this run.",
+    "narrative": "BTC is at $64,616, ~27 months past the last halving. It topped near $126,080 in Oct 2025. Both lenses rhyme. The ~4-year halving cycle projects a low around Oct 2026 (top + ~370 days). The midterm year is historically the weakest of the political cycle and has tended to bottom near Oct 2026. Weakest year of the political cycle. Markets have historically bottomed near October of the midterm year, followed by a strong 12-month rally — the S&P has not fallen in the 12 months after a midterm low since 1946. Macro backdrop — risk-on flags: NFCI, Net Liquidity Trend (13w), M2 Trend (YoY).",
+    "changedSince": "No material change since the last briefing.",
+    "invalidation": [
+      "Weekly close back above ~$75,000 (recent range reclaimed) → decline thesis likely over, stop shorting.",
+      "MVRV Z-Score back above 4 → market re-heating, corrective thesis void.",
+      "A confirmed higher high on the weekly chart → trend has turned up.",
+      "Deep capitulation print (NUPL < 0, MVRV Z ≈ 0) → the low may be in; flip from hedging to accumulating."
+    ]
+  },
+  "cycle": {
+    "rows": [
+      {
+        "label": "Halving",
+        "sub": "Apr 2024",
+        "phase": "Cycle start",
+        "kind": "anchor",
+        "note": "Block reward cut in half. Historical marker for the start of a new ~4-year cycle."
+      },
+      {
+        "label": "Cycle top",
+        "sub": "Oct 2025 · $126,080",
+        "phase": "Markup → Decline",
+        "kind": "anchor",
+        "note": "All-time high, ~18 months post-halving."
+      },
+      {
+        "label": "Now",
+        "sub": "Jul 2026 · ~27 months post-halving",
+        "phase": "Decline",
+        "kind": "now",
+        "note": "post-top decline — similar to mid-2018 and mid-2022 from this cycle position."
+      },
+      {
+        "label": "Projected convergence window",
+        "sub": "≈ Sep 2026 – Nov 2026",
+        "phase": "Bottoming (projected)",
+        "kind": "window",
+        "note": "Halving-cycle low estimate (cycle top + ~370d) and the midterm year seasonal low both point to this window."
+      },
+      {
+        "label": "Next halving",
+        "sub": "≈ Apr 2028",
+        "phase": "—",
+        "kind": "anchor",
+        "note": "Projected from current block height (959,710) and the ~10min block target — 90,290 blocks remaining."
+      }
+    ],
+    "analogue": "You are here ≈ <b>post-top decline — mid-2018 and mid-2022</b>.",
+    "read": "Both lenses rhyme. The ~4-year halving cycle projects a low around Oct 2026 (top + ~370 days). The midterm year is historically the weakest of the political cycle and has tended to bottom near Oct 2026. Weakest year of the political cycle. Markets have historically bottomed near October of the midterm year, followed by a strong 12-month rally — the S&P has not fallen in the 12 months after a midterm low since 1946.",
+    "caveat": "<b>Base rates, not destiny.</b> A handful of BTC cycles and ~20 macro-cycle instances are small samples, and post-ETF (Jan 2024) the crypto cycle may be dampening or stretching from historical norms. Treat this as converging context that caps confidence, not a schedule."
+  },
+  "readings": [
+    {
+      "name": "NFCI",
+      "tf": "weekly",
+      "tier": "macro",
+      "value": "-0.55",
+      "raw": -0.552,
+      "zone": "green",
+      "pos": 0.17919999999999997,
+      "lo": "< -0.3 · loose / risk-on",
+      "hi": "> 0.2 · tight / risk-off",
+      "context": "Looser than average financial conditions — risk-on tailwind.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.118Z",
+      "flagging": true
+    },
+    {
+      "name": "Net Liquidity Trend (13w)",
+      "tf": "WALCL−RRP−TGA",
+      "tier": "macro",
+      "value": "+17.7%",
+      "raw": 0.17651554498239208,
+      "zone": "green",
+      "pos": 1,
+      "lo": "falling · risk-off headwind",
+      "hi": "rising · risk-on tailwind",
+      "context": "Rising — Fed net liquidity (balance sheet minus reverse repo minus TGA) expanding, a risk-on tailwind.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.316Z",
+      "flagging": true
+    },
+    {
+      "name": "M2 Trend (YoY)",
+      "tf": "M2SL",
+      "tier": "macro",
+      "value": "+5.6%",
+      "raw": 0.05580313182711278,
+      "zone": "green",
+      "pos": 0.705354212180752,
+      "lo": "< -1% YoY · contraction, tightening",
+      "hi": "> 2% YoY · expansion, loosening",
+      "context": "Money supply expanding YoY — loosening, risk-on tailwind.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.142Z",
+      "flagging": true
+    },
+    {
+      "name": "MVRV Z-Score",
+      "tf": "cycle",
+      "tier": "crypto",
+      "value": "0.39",
+      "raw": 0.3894,
+      "zone": "amber",
+      "pos": 0.05562857142857143,
+      "lo": "0 · undervalued",
+      "hi": "7+ · euphoria",
+      "context": "Nearer the low band than the high — historically closer to accumulation than distribution.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:23.962Z",
+      "flagging": false
+    },
+    {
+      "name": "NUPL",
+      "tf": "cycle",
+      "tier": "crypto",
+      "value": "0.18",
+      "raw": 0.1848,
+      "zone": "amber",
+      "pos": 0.34784,
+      "lo": "<0 · capitulation",
+      "hi": ">0.75 · euphoria",
+      "context": "Fear band — a declining NUPL off a top is a normal post-top bleed, not necessarily a top forming.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:23.997Z",
+      "flagging": false
+    },
+    {
+      "name": "Puell Multiple",
+      "tf": "cycle",
+      "tier": "crypto",
+      "value": "0.70",
+      "raw": 0.7043,
+      "zone": "amber",
+      "pos": 0.10927027027027028,
+      "lo": "0.3 · miner capitulation",
+      "hi": "4 · top zone (no reliable top signal)",
+      "context": "Below 1 — miners under pressure.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:23.991Z",
+      "flagging": false
+    },
+    {
+      "name": "Pi Cycle Top",
+      "tf": "cycle",
+      "tier": "crypto",
+      "value": "no cross · 59% gap",
+      "raw": 0.5921441267267498,
+      "zone": "green",
+      "pos": 0,
+      "lo": "wide gap",
+      "hi": "cross · top signal",
+      "context": "Gap between 111DMA and 350DMA×2 — no top signal currently.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.317Z",
+      "flagging": false
+    },
+    {
+      "name": "RSI",
+      "tf": "weekly",
+      "tier": "crypto",
+      "value": "39",
+      "raw": 38.85565948346985,
+      "zone": "amber",
+      "pos": 0.3885565948346985,
+      "lo": "30 · oversold",
+      "hi": "70 · overbought",
+      "context": "Below/near midline — room to move either direction.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.317Z",
+      "flagging": false
+    },
+    {
+      "name": "Funding rate",
+      "tf": "perp · 8h",
+      "tier": "crypto",
+      "value": "+0.003%",
+      "raw": 0.00002734,
+      "zone": "amber",
+      "pos": 0.35156000000000004,
+      "lo": "negative · shorts pay",
+      "hi": "high positive · longs crowded",
+      "context": "STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). Last known value as of 2026-07-14T06:14:57.109Z: Positive — longs paying, some crowding risk.",
+      "stale": true,
+      "asOf": "2026-07-14T06:14:57.109Z",
+      "flagging": false
+    },
+    {
+      "name": "RHODL Ratio",
+      "tf": "cycle",
+      "tier": "crypto",
+      "value": "710",
+      "raw": 710.104,
+      "zone": "amber",
+      "pos": 0.33761534998554404,
+      "lo": "~350 (p10) · bottom accumulation",
+      "hi": "~5,000 (p90) · euphoric top",
+      "context": "Mid-range — no extreme in holder-cohort behavior right now.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.016Z",
+      "flagging": false
+    },
+    {
+      "name": "Fear & Greed Index",
+      "tf": "daily",
+      "tier": "crypto",
+      "value": "26 · Fear",
+      "raw": 26,
+      "zone": "amber",
+      "pos": 0.26,
+      "lo": "<25 · extreme fear",
+      "hi": ">75 · extreme greed",
+      "context": "Neither extreme — dormant, not counted as evidence.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:23.820Z",
+      "flagging": false
+    },
+    {
+      "name": "Sahm Rule",
+      "tf": "monthly",
+      "tier": "macro",
+      "value": "0.07",
+      "raw": 0.07,
+      "zone": "amber",
+      "pos": 0.04666666666666667,
+      "lo": "0 · no signal",
+      "hi": "≥0.50 · recession very likely started",
+      "context": "Below trigger — no recession signal from this indicator right now.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.092Z",
+      "flagging": false
+    },
+    {
+      "name": "Yield Curve Spread",
+      "tf": "10Y-2Y",
+      "tier": "macro",
+      "value": "0.36",
+      "raw": 0.36,
+      "zone": "amber",
+      "pos": 0.46499999999999997,
+      "lo": "<0 · inverted",
+      "hi": "un-inversion watched separately",
+      "context": "Not inverted — normal curve shape.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.194Z",
+      "flagging": false
+    },
+    {
+      "name": "DXY Trend (13w)",
+      "tf": "DTWEXBGS",
+      "tier": "macro",
+      "value": "+1.8%",
+      "raw": 0.01836291728238288,
+      "zone": "amber",
+      "pos": 0.5918145864119143,
+      "lo": "falling · dollar weakness, tailwind",
+      "hi": "rising · dollar strength, headwind",
+      "context": "Roughly flat over the trailing 13 weeks.",
+      "stale": false,
+      "asOf": "2026-07-26T14:42:24.258Z",
+      "flagging": false
+    }
+  ],
+  "conflict": null,
+  "suggestions": [
+    {
+      "archetype": "D",
+      "dir": "Short",
+      "tagline": "Early cycle-window positioning (pre-low)",
+      "entry": 65000,
+      "invalidation": 83000,
+      "target": 32000,
+      "rationale": "Still in Decline with no bounce/breakdown trigger yet, but the convergence low window is ~57 days out. Position short into the final leg down near $65,000; invalidation on a structure reclaim ($83,000). Acting on the cycle read itself, ahead of a price trigger.",
+      "gateReason": "short admitted — not a capitulation spike, not a breakdown into recovery structure"
+    }
+  ],
+  "deniedSuggestions": [],
+  "gateCautions": [],
+  "regime": {
+    "label": "bear_grind",
+    "vetoShort": false,
+    "recoveryStructure": false,
+    "reasons": [
+      "downtrend, on-chain washed out but low/mid vol → late bear grind (not a capitulation spike), shorts still admissible"
+    ]
+  },
+  "cowen": {
+    "latest": {
+      "date": "2026-07-16",
+      "videoTitle": "Thursday AMA Video: July 16, 2026",
+      "sourceUrl": "https://youtu.be/90yTWIFmeIU",
+      "direction": {
+        "stance": "not_stated",
+        "timeframe": "not available",
+        "note": "Transcript missing — HappyScribe did not complete automatic transcription within 3 days of queuing."
+      },
+      "priceLevels": [],
+      "cycleView": {
+        "note": "not available — transcript missing"
+      },
+      "indicatorsCited": [],
+      "invalidation": [],
+      "conviction": "not_stated",
+      "resolutionDate": null,
+      "resolution": {
+        "status": "pending",
+        "cowenGrade": null,
+        "appGrade": null,
+        "notes": "No transcript available to grade."
+      },
+      "compareToHypothesis": {
+        "appDirection": "Corrective — lower lows into a projected Oct 2026 low",
+        "appHorizon": "3–6 months",
+        "appConfidence": 61,
+        "appSuggestions": [],
+        "agreement": "not_yet_compared",
+        "note": "No transcript available for comparison."
+      }
+    },
+    "daysSinceLogged": 10,
+    "entryCount": 4,
+    "agreementTally": {
+      "agree": 3,
+      "conflict": 0,
+      "orthogonal": 0,
+      "not_yet_compared": 1
+    },
+    "outcomeTally": {
+      "cowen": {
+        "win": 0,
+        "loss": 0,
+        "mixed": 0
+      },
+      "app": {
+        "win": 0,
+        "loss": 0,
+        "mixed": 0
+      }
+    },
+    "gradedCount": 0,
+    "readyToGrade": []
+  },
+  "tradeLog": {
+    "active": [],
+    "closed": [],
+    "activeCount": 0,
+    "closedCount": 0,
+    "realizedPnLTotal": 0
+  },
+  "performance": {
+    "perPredictor": {
+      "App": {
+        "resolvedCount": 0,
+        "win": 0,
+        "loss": 0,
+        "mixed": 0,
+        "hitRate": null,
+        "avgMagnitude": null,
+        "wobbleSplit": {
+          "Stable": 0,
+          "Adjusted": 0,
+          "Reversed": 0
+        },
+        "brier": null,
+        "brierN": 0,
+        "hitRateCaveat": true,
+        "calibrationCaveat": true
+      },
+      "Ben Cowen": {
+        "resolvedCount": 0,
+        "win": 0,
+        "loss": 0,
+        "mixed": 0,
+        "hitRate": null,
+        "avgMagnitude": null,
+        "wobbleSplit": {
+          "Stable": 0,
+          "Adjusted": 0,
+          "Reversed": 0
+        },
+        "brier": null,
+        "brierN": 0,
+        "hitRateCaveat": true,
+        "calibrationCaveat": true
+      }
+    },
+    "resolvedCalls": []
+  },
+  "ledger": {
+    "priceDataAsOf": "2026-07-26T14:42:23.092Z",
+    "priceDataAvailable": true,
+    "entries": [
+      {
+        "id": "B|Short|67000|32000::2026-07-12",
+        "archetype": "B",
+        "dir": "Short",
+        "tagline": "Breakdown continuation",
+        "entry": 64000,
+        "invalidation": 67000,
+        "target": 32000,
+        "rationale": "Confirmed close below the most recent swing low ($65,970). Continuation short near $64,000 with a tight invalidation on a reclaim back above the broken low ($67,000). Daily-close confirmation (weekly close is stronger).",
+        "gateReason": "short admitted — not a capitulation spike, not a breakdown into recovery structure",
+        "caution": null,
+        "status": "admitted",
+        "regimeAtFirstSeen": "capitulation",
+        "firstSeenDate": "2026-07-12",
+        "lastSeenDate": "2026-07-14",
+        "occurrences": 2,
+        "generation": 1,
+        "resolution": {
+          "status": "still_open",
+          "resolvedDate": null,
+          "daysToResolve": null,
+          "magnitudePct": null
+        }
+      },
+      {
+        "id": "D|Short|83000|32000::2026-07-24",
+        "archetype": "D",
+        "dir": "Short",
+        "tagline": "Early cycle-window positioning (pre-low)",
+        "entry": 65000,
+        "invalidation": 83000,
+        "target": 32000,
+        "rationale": "Still in Decline with no bounce/breakdown trigger yet, but the convergence low window is ~59 days out. Position short into the final leg down near $65,000; invalidation on a structure reclaim ($83,000). Acting on the cycle read itself, ahead of a price trigger.",
+        "gateReason": "short admitted — not a capitulation spike, not a breakdown into recovery structure",
+        "caution": null,
+        "status": "admitted",
+        "regimeAtFirstSeen": "bear_grind",
+        "firstSeenDate": "2026-07-24",
+        "lastSeenDate": "2026-07-26",
+        "occurrences": 4,
+        "generation": 1,
+        "resolution": {
+          "status": "still_open",
+          "resolvedDate": null,
+          "daysToResolve": null,
+          "magnitudePct": null
+        }
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "byStatus": {
+        "admitted": 2,
+        "denied": 0
+      },
+      "admitted": {
+        "resolvedCount": 0,
+        "hitTarget": 0,
+        "hitInvalidation": 0,
+        "stillOpen": 2,
+        "hitRate": null,
+        "hitRateCaveat": true
+      },
+      "denied": {
+        "resolvedCount": 0,
+        "wouldHaveLost": 0,
+        "wouldHaveWon": 0,
+        "stillOpen": 0,
+        "gateVindicationRate": null,
+        "gateVindicationCaveat": true
+      },
+      "byArchetype": {
+        "B": {
+          "total": 1,
+          "hitTarget": 0,
+          "hitInvalidation": 0,
+          "stillOpen": 1
+        },
+        "D": {
+          "total": 1,
+          "hitTarget": 0,
+          "hitInvalidation": 0,
+          "stillOpen": 1
+        }
+      },
+      "byRegime": {
+        "capitulation": {
+          "total": 1,
+          "hitTarget": 0,
+          "hitInvalidation": 0,
+          "stillOpen": 1
+        },
+        "bear_grind": {
+          "total": 1,
+          "hitTarget": 0,
+          "hitInvalidation": 0,
+          "stillOpen": 1
+        }
+      }
+    }
+  },
+  "rates": {
+    "aaveBorrowAPR": 0.003592,
+    "aaveSupplyAPR": 0.031249,
+    "aaveLiqThreshold": 0.78,
+    "fundingRate8h": 0.00002734
+  },
+  "live": true,
+  "generatedAt": "2026-07-26T14:42:23.092Z",
+  "isPublicBuild": true
+};
+/* DATA_END */
+
+const DATA_SOURCES = [
+  ["Price / OHLC", "CoinGecko (free, no key)"],
+  ["MVRV Z-Score, NUPL, Puell Multiple, RHODL Ratio", "bitcoin-data.com (BGeometrics), Bearer-key auth"],
+  ["Pi Cycle", "computed from price (111DMA vs 350DMA×2)"],
+  ["RSI (weekly)", "computed from price (Wilder's RSI-14, resampled weekly)"],
+  ["Fear & Greed Index", "alternative.me (free, no key)"],
+  ["Funding rate", "Binance Futures premiumIndex (free, no key) - substituted for paid-only Coinglass"],
+  ["Aave borrow / supply APR + liq threshold", "on-chain read via free public RPC, no key/signup"],
+  ["Sahm Rule, Yield Curve Spread (10Y-2Y), NFCI", "FRED API (free key required)"],
+  ["Net Liquidity Trend, DXY Trend, M2 Trend", "FRED API - WALCL/RRPONTSYD/WTREGEN/DTWEXBGS/M2SL (free key required)"],
+  ["Halving dates / cycle position", "computed from block height (mempool.space) + protocol schedule"],
+  ["Presidential-cycle base rates", "static macro reference (historical, cited)"],
+  ["ITC composite Risk/Recession/Liquidity dashboards", "deferred/excluded - proprietary, no public API; component series above used instead"]
+];
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const fmt$ = n => "$" + Math.round(n).toLocaleString("en-US");
+const fmtSigned$ = n => (n>=0?"+":"−") + "$" + Math.abs(Math.round(n)).toLocaleString("en-US");
+const pct = n => (n*100).toFixed(1) + "%";
+const pct0 = n => (n*100).toFixed(0) + "%";
+
+// Generic one-line "what it is" per indicator — static, client-side only.
+// "Why it matters for this call" always comes from the live DATA.readings[].context
+// field instead (run-specific), never from this table.
+const READING_WHAT = {
+  "MVRV Z-Score": "Market cap vs. realized cap, expressed in standard deviations — flags statistical extremes in cost-basis valuation.",
+  "NUPL": "Net Unrealized Profit/Loss — the market-wide ratio of paper profit to loss, banded from capitulation to euphoria.",
+  "Puell Multiple": "Daily miner issuance value vs. its 365-day average — flags miner capitulation at the low end; no reliable top signal.",
+  "Pi Cycle Top": "111-day vs. 350-day×2 moving-average crossover — a structural top-only event detector, silent outside blow-off tops.",
+  "RSI": "Relative Strength Index (weekly) — momentum oscillator, continuously relevant unlike the cycle-only metrics.",
+  "Funding rate": "Perpetual-futures funding rate — reflects long/short positioning crowding; feeds the calculator's perp mode.",
+  "RHODL Ratio": "Realized-cap HODL waves across short- vs. long-term holder cohorts — leads at bottoms via supply-age behavior.",
+  "Fear & Greed Index": "Composite sentiment score — contrarian value concentrated at extremes, dormant near the midline.",
+  "Sahm Rule": "Recession-timing rule: the 3-month average unemployment rate vs. its trailing 12-month low.",
+  "Yield Curve Spread": "10Y–2Y Treasury spread — inversion has preceded past recessions, though it lags an actual risk-asset bottom.",
+  "NFCI": "Chicago Fed National Financial Conditions Index — composite of money, debt, and equity-market conditions.",
+  "Net Liquidity Trend (13w)": "Fed balance sheet minus reverse repo and Treasury general account — a proxy for system-wide dollar liquidity.",
+  "DXY Trend (13w)": "US Dollar Index trend — dollar strength is typically a risk-asset headwind.",
+  "M2 Trend (YoY)": "Money-supply growth year-over-year — expansion is typically a risk-asset tailwind."
+};
+
+function render(){
+  $("#price").textContent = fmt$(DATA.price);
+  $("#mh-asset").textContent = DATA.asset;
+  const down = ((DATA.price-DATA.ath.value)/DATA.ath.value*100).toFixed(0);
+  const athDateLabel = new Date(DATA.ath.date).toLocaleDateString("en-US",{month:"short",year:"numeric"});
+  $("#ath").innerHTML = "ATH " + fmt$(DATA.ath.value) + " · " + athDateLabel + " · <span class=\"draw\">" + down + "%</span>";
+  $("#asof").textContent = "as of " + DATA.asOf;
+
+  const freshLevel = DATA.freshness.level;
+  $("#live-dot").className = "dot" + (freshLevel!=="ok" ? " "+(freshLevel==="stale"?"stale":"warn") : "");
+  $("#live-label").textContent = freshLevel==="ok" ? "Live" : (freshLevel==="stale" ? "Stale" : "Live · degraded");
+  const fb = $("#freshness-banner");
+  if(freshLevel!=="ok"){
+    fb.style.display = "";
+    fb.className = "freshness-banner" + (freshLevel==="stale"?" stale":"");
+    fb.querySelector(".dot").className = "dot " + freshLevel;
+    $("#freshness-text").textContent = DATA.freshness.text;
+  } else {
+    fb.style.display = "none";
+  }
+
+  const h = DATA.hypothesis;
+  $("#hypo-direction").textContent = h.direction;
+  let badgesHTML = `<span class="badge">${h.state}</span><span class="badge">Horizon ${h.horizon}</span>`;
+  const rg = DATA.regime;
+  if(rg && rg.label){
+    const label = rg.label.replace(/_/g," ");
+    badgesHTML += `<span class="badge regime${rg.vetoShort?" veto":""}">Regime · ${rg.vetoShort?"⚠ ":""}${label}</span>`;
+    $("#regime-note").textContent = (rg.reasons && rg.reasons[0]) ? rg.reasons[0] : "";
+  } else {
+    $("#regime-note").textContent = "";
+  }
+  $("#hypo-badges").innerHTML = badgesHTML;
+  $("#hypo-narrative").textContent = h.narrative;
+  const gradeHypoHTML = (h.state==="PlayedOut" || h.state==="Invalidated")
+    ? `<div style="margin-top:14px"><button class="btn ghost small" onclick="toggleGradeHypothesis()">Grade current Hypothesis →</button>
+       <div class="take-inline" id="grade-hypo-inline">
+         <div class="take-fields">
+           <div><label>Final direction</label><input type="text" id="gh-direction" value="${h.direction.replace(/"/g,"&quot;")}"></div>
+           <div><label>Final target</label><input type="number" id="gh-target"></div>
+         </div>
+         <div class="take-fields">
+           <div><label>Actual price at resolution</label><input type="number" id="gh-price" value="${DATA.price}"></div>
+           <div><label>Magnitude (%)</label><input type="number" id="gh-mag" step="0.1"></div>
+         </div>
+         <div class="take-fields" style="grid-template-columns:1fr">
+           <div><label>Hit / Miss / Mixed</label><select id="gh-hit"><option value="hit">Hit</option><option value="miss">Miss</option><option value="mixed">Mixed</option></select></div>
+         </div>
+         <div style="display:flex;justify-content:flex-end;gap:8px">
+           <button class="btn ghost small" onclick="toggleGradeHypothesis()">Cancel</button>
+           <button class="btn primary small" onclick="submitGradeHypothesis()">Save</button>
+         </div>
+       </div></div>`
+    : "";
+  $("#hypo-changed").innerHTML = "<b>Since last briefing:</b> " + h.changedSince + gradeHypoHTML;
+  $("#hypo-invalidation").innerHTML = h.invalidation.map(x=>
+    `<div class="invalid-item"><span class="arrow">→</span><span>${x}</span></div>`).join("");
+
+  $("#hypo-conf").textContent = h.confidence + "%";
+  $("#hypo-conf-note").textContent = h.confidenceNote;
+  const ringDeg = Math.max(0, Math.min(100, h.confidence)) * 3.6;
+  $("#confidence-ring").style.background =
+    `conic-gradient(var(--gold) 0deg ${ringDeg}deg, var(--chip) ${ringDeg}deg 360deg)`;
+
+  renderTrade();
+  renderReadings();
+  renderCowen();
+  renderCycle();
+
+  $("#sources").innerHTML = DATA_SOURCES.map(([k,v])=>`<div><code>${k}</code> — ${v}</div>`).join("");
+  $("#disclaimer").innerHTML = DATA.live
+    ? `<b>Live data.</b> Generated ${DATA.generatedAt ? new Date(DATA.generatedAt).toLocaleString("en-US",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "—"} `
+      + `from the sources below (Fork A — no scraping on the critical path). Decision-support only: it forms a view `
+      + `and estimates outcomes, it does not place trades. Calculator excludes slippage, gas, and trading fees. Not financial advice.`
+    : `<b>Sample data.</b> Every number here is illustrative and hard-coded for the POC — including the price. `
+      + `Cycle dates and historical stats are real; the current price/readings are placeholders pending live wiring `
+      + `(Fork A — no scraping on the critical path). Decision-support only: it forms a view and estimates outcomes, `
+      + `it does not place trades. Calculator excludes slippage, gas, and trading fees. Not financial advice.`;
+}
+
+/* =====================================================================
+   TRADE COLUMN — setup(s) valid now, price ladder, target derivation,
+   "gate held back" list, and the empty state.
+   ===================================================================== */
+
+// Pure presentational derivation from entry/invalidation/target — no new
+// DATA fields required. Ladder compresses whichever leg (risk or reward)
+// is numerically smaller so a typical tight-stop/distant-target setup
+// doesn't collapse the near dots into each other; direction-agnostic
+// (works the same for short or long, per v3 §2's symmetric-by-design rule).
+function deriveSetupView(s){
+  const E = s.entry, INV = s.invalidation, X = s.target;
+  const riskDist = Math.abs(INV - E), rewardDist = Math.abs(X - E);
+  const riskPct = E ? riskDist / E : 0, rewardPct = E ? rewardDist / E : 0;
+  const rr = riskDist > 0 ? (rewardDist / riskDist) : null;
+
+  const invAboveEntry = INV > E; // short-shaped: stop above, target below (and mirrored for long)
+  const smallLegIsRisk = riskDist <= rewardDist;
+  const TOP = 8, BOT = 92;
+  const nearFrac = 0.22, farFrac = 0.78;
+  let entryFracFromTop;
+  if(invAboveEntry){ entryFracFromTop = smallLegIsRisk ? nearFrac : farFrac; }
+  else { entryFracFromTop = smallLegIsRisk ? farFrac : nearFrac; }
+  const entryPct = TOP + entryFracFromTop * (BOT - TOP);
+
+  const points = invAboveEntry
+    ? [
+        {key:"inval", price:INV, label:"Invalidation", sub:`Invalidation · +${pct0(riskPct)}`, pct:TOP, color:"var(--rust)"},
+        {key:"entry", price:E, label:"Entry (now)", sub:"", pct:entryPct, color:"var(--ink)"},
+        {key:"target", price:X, label:"Target", sub:`Target · −${pct0(rewardPct)}`, pct:BOT, color:"var(--green)"}
+      ]
+    : [
+        {key:"target", price:X, label:"Target", sub:`Target · +${pct0(rewardPct)}`, pct:TOP, color:"var(--green)"},
+        {key:"entry", price:E, label:"Entry (now)", sub:"", pct:entryPct, color:"var(--ink)"},
+        {key:"inval", price:INV, label:"Invalidation", sub:`Invalidation · −${pct0(riskPct)}`, pct:BOT, color:"var(--rust)"}
+      ];
+
+  // scale-break sits in the middle of whichever leg is larger
+  const largeLegIsTopHalf = invAboveEntry ? !smallLegIsRisk : smallLegIsRisk;
+  const breakPct = largeLegIsTopHalf ? (TOP+entryPct)/2 : (entryPct+BOT)/2;
+  const legLabel = (X < E ? "down" : "up") + "-leg";
+
+  return {riskPct, rewardPct, rr, points, entryPct, breakPct, legLabel, barTop:entryPct, barBot:BOT};
+}
+
+function ladderHTML(s){
+  const v = deriveSetupView(s);
+  const dots = v.points.map(p => `
+    <div class="ladder-pt" style="top:${p.pct}%">
+      <div class="ladder-dot" style="left:-6px;width:9px;height:9px;background:${p.color}"></div>
+      <div class="ladder-content">
+        <div class="ladder-num" style="color:${p.color}">${fmt$(p.price)}</div>
+        <div class="ladder-sub">${p.sub || p.label}</div>
+      </div>
+    </div>`).join("");
+  const entryStyle = v.points.find(p=>p.key==="entry");
+  const barTop = Math.min(v.entryPct, v.barBot), barBot = Math.max(v.entryPct, v.barBot);
+  return `
+    <div class="ladder-wrap">
+      <div class="ladder-label">Price ladder</div>
+      <div class="ladder">
+        ${dots}
+        <div class="ladder-bar" style="top:${barTop}%;height:${barBot-barTop}%;background:linear-gradient(var(--ink),var(--green))"></div>
+        <div class="ladder-break" style="top:${v.breakPct}%">⤳</div>
+        <div class="ladder-break-label" style="top:${v.breakPct}%">~${pct0(v.rewardPct>v.riskPct?v.rewardPct:v.riskPct)} ${v.legLabel}</div>
+      </div>
+      <div class="rr-box">
+        <div class="k">Reward : Risk</div>
+        <div class="v">${v.rr!=null ? v.rr.toFixed(1) : "—"} : 1</div>
+      </div>
+    </div>`;
+}
+
+// Synthesizes a numbered "why the target is $X" chain from fields that
+// already exist (rationale prose + cycle context + regime reasons)
+// instead of requiring a new structured field from the pipeline.
+function derivationHTML(s){
+  const steps = [];
+  steps.push({head:"Setup trigger", body: s.rationale});
+  if(DATA.cycle){
+    const cycleBits = [DATA.cycle.analogue, DATA.cycle.read].filter(Boolean).join(" ");
+    if(cycleBits) steps.push({head:"Cycle position", body: cycleBits});
+  }
+  if(DATA.regime && DATA.regime.reasons && DATA.regime.reasons[0]){
+    steps.push({head:"Regime check", body: DATA.regime.reasons[0]});
+  }
+  const stepsHTML = steps.map((d,i)=>`
+    <div class="deriv-step">
+      <div class="deriv-n">${i+1}</div>
+      <div><div class="deriv-head">${d.head}</div><div class="deriv-body">${d.body}</div></div>
+    </div>`).join("");
+  return `
+    <div class="derivation">
+      <div class="ladder-label">Why the target is ${fmt$(s.target)}</div>
+      <div>${stepsHTML}</div>
+    </div>`;
+}
+
+function suggestionHTML(s,i){
+  // v3 §2: symmetric tag copy — Long is no longer a bare "long" tag.
+  const dirTag = s.dir==="Short" ? `<span class="tag">capture down-leg</span>` : `<span class="tag">capture up-leg</span>`;
+  const archTag = s.archetype ? `<span class="tag arch">Arch ${s.archetype}</span>` : "";
+  return `<div class="setup">
+    <div class="setup-head">
+      <div class="setup-title">${s.dir} — ${s.tagline}</div>
+      ${dirTag}${archTag}
+    </div>
+    <p class="setup-rationale">${s.rationale}</p>
+    ${s.caution ? `<div class="setup-caution"><b>⚠ Caution.</b> ${s.caution}</div>` : ""}
+    <div class="setup-body">
+      ${ladderHTML(s)}
+      ${derivationHTML(s)}
+    </div>
+    <div class="calc" id="calc-${i}">
+      <div class="calc-head">
+        <div class="calc-title">Trade estimate — adjust &amp; decide</div>
+        <div class="calc-both">both outcomes shown</div>
+      </div>
+      <div class="ctrl">
+        <label>Position size (notional) <b id="size-lbl-${i}"></b></label>
+        <input type="range" id="size-${i}" min="1000" max="100000" step="1000" value="20000" aria-label="Position size in USD">
+      </div>
+      <div class="ctrl">
+        <label>Funding mode</label>
+        <div class="toggle" role="group" aria-label="Funding mode" id="mode-${i}">
+          <button data-mode="cash"  aria-pressed="false">Cash · 1×</button>
+          <button data-mode="aave"  aria-pressed="true">Aave leveraged</button>
+          <button data-mode="perp"  aria-pressed="false">Perp</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Expected hold <b id="hold-lbl-${i}">45 days</b></label>
+        <input type="range" id="hold-${i}" min="7" max="120" step="1" value="45" aria-label="Hold days">
+      </div>
+      <div class="aave-fields" id="aave-${i}">
+        <div class="field"><label>Collateral (USD)</label>
+          <input type="number" id="coll-${i}" value="12000" min="0" step="500">
+          <div class="hint">stablecoin you post to Aave</div></div>
+        <div class="field"><label>Borrow APR (%)</label>
+          <input type="number" id="bapr-${i}" value="6.2" min="0" step="0.1">
+          <div class="hint">live from Aave (sample 6.2)</div></div>
+      </div>
+      <div class="ctrl" id="perp-field-${i}" style="display:none">
+        <label>Leverage <b id="lev-lbl-${i}">3×</b></label>
+        <input type="range" id="lev-${i}" min="1" max="10" step="1" value="3" aria-label="Perp leverage">
+      </div>
+      <div class="calc-tiles" id="tiles-${i}"></div>
+      <div class="calc-lines" id="out-${i}"></div>
+      <div class="assump" id="assump-${i}"></div>
+    </div>
+    <div class="take-row"><button class="btn ghost small" onclick="toggleTakeInline(${i})">Mark as taken →</button></div>
+    <div class="take-inline" id="take-inline-${i}">
+      <div class="take-fields">
+        <div><label>Entry (actual)</label><input type="number" id="take-entry-${i}" value="${s.entry}"></div>
+        <div><label>Target (actual)</label><input type="number" id="take-target-${i}" value="${s.target}"></div>
+      </div>
+      <div class="take-fields" style="grid-template-columns:1fr">
+        <div><label>Size (notional)</label><input type="number" id="take-size-${i}" value="0.1" step="0.01" min="0"></div>
+      </div>
+      <div style="font:400 10.5px/1.5 var(--sans);color:var(--faint);margin-bottom:12px">
+        Prefilled from the suggestion (entry ${fmt$(s.entry)} / target ${fmt$(s.target)}) — edit if you got a different fill or nudged the target. The original suggestion is never changed.
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn ghost small" onclick="toggleTakeInline(${i})">Cancel</button>
+        <button class="btn primary small" onclick="submitTakeTrade(${i})">Save → My Trades</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function emptyState(){
+  return `<div class="empty">
+      <div class="big">Nothing to do.</div>
+      <div class="sub">Hypothesis unchanged, no setup is valid at current price. Holding is the position.</div>
+      <div class="empty-toggle">A tool that manufactures a trade every day is the overtrading trap —
+        so "do nothing" is a first-class output here.
+        <button onclick="showSample()">show a sample setup instead</button></div>
+    </div>`;
+}
+function showSample(){
+  DATA.suggestions = [{ archetype:"A", dir:"Short", tagline:"Relief-rally fade",
+    entry:88000, invalidation:98000, target:64000, rationale:"Sample setup for demonstration." }];
+  renderTrade();
+}
+
+function renderTrade(){
+  const box = $("#trade");
+  let html;
+  if(!DATA.suggestions.length){
+    html = emptyState();
+  } else {
+    html = DATA.suggestions.map((s,i)=>suggestionHTML(s,i)).join("");
+  }
+
+  const denied = DATA.deniedSuggestions || [];
+  if(denied.length){
+    html += `<div class="vetoed"><div class="vetoed-head">Setups the gate held back</div>` +
+      denied.map(s=>`<div class="vetoed-item">
+        <span class="vt">${s.dir} — ${s.tagline||s.archetype||""} ${s.archetype?`(${s.archetype})`:""}</span>
+        <span class="vr"><b>Denied.</b> ${s.gateReason||"gated"}</span>
+      </div>`).join("") + `</div>`;
+  }
+  if((DATA.gateCautions||[]).length){
+    html += `<div class="vetoed"><div class="vetoed-head">Gate cautions</div>` +
+      DATA.gateCautions.map(c=>`<div class="vetoed-item">${c.caution||c}</div>`).join("") + `</div>`;
+  }
+
+  box.innerHTML = html;
+  if(DATA.suggestions.length){ DATA.suggestions.forEach((s,i)=>wireCalc(s,i)); }
+}
+
+/* =====================================================================
+   READINGS — dormant-collapse + per-row click-to-expand what/why panel.
+   ===================================================================== */
+function renderReadings(){
+  const readingHTML = (r, idx) => `
+    <div class="reading" id="reading-${idx}">
+      <div class="reading-row" tabindex="0" role="button" aria-expanded="false" onclick="toggleReading(${idx})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleReading(${idx})}">
+        <div class="reading-main">
+          <div class="reading-name">
+            <span class="nm">${r.name}</span><span class="tf">${r.tf}</span>
+            ${r.flagging ? "" : `<span class="dormant-badge">dormant</span>`}
+          </div>
+          <div class="reading-band"><span class="reading-marker" style="left:${(r.pos*100).toFixed(1)}%;background:var(--${r.zone==="red"?"rust":r.zone==="green"?"green":"gold"})"></span></div>
+          <div class="reading-foot"><span>${r.lo}</span><span>${r.hi}</span></div>
+        </div>
+        <div class="reading-right">
+          <div>
+            <div class="reading-val">${r.value}</div>
+            <div class="reading-zone" style="color:var(--${r.zone==="red"?"rust":r.zone==="green"?"green":"gold"})">${r.zone==="green"?"low risk":r.zone==="red"?"high risk":"neutral"}</div>
+          </div>
+          <div class="reading-chev">›</div>
+        </div>
+      </div>
+      <div class="reading-detail" id="reading-detail-${idx}" style="display:none">
+        <div class="reading-detail-inner">
+          <div class="reading-detail-label">What it is</div>
+          <div class="reading-detail-body">${READING_WHAT[r.name] || "No description available."}</div>
+          <div class="reading-detail-label why">Why it matters for this call</div>
+          <div class="reading-detail-body">${r.context}${r.stale ? " <b style=\"color:var(--rust)\">(stale reading)</b>" : ""}</div>
+        </div>
+      </div>
+    </div>`;
+
+  const flagging = DATA.readings.filter(r=>r.flagging);
+  const dormant = DATA.readings.filter(r=>!r.flagging);
+  const ordered = flagging.concat(dormant);
+  let readingsHTML = ordered.slice(0, flagging.length).map((r,idx)=>readingHTML(r, idx)).join("");
+  if(dormant.length){
+    const n = dormant.length;
+    const showLabel = `Show ${n} more reading${n===1?"":"s"} (not flagging)`;
+    const hideLabel = `Hide ${n} reading${n===1?"":"s"} (not flagging)`;
+    readingsHTML += `<button class="dormant-toggle" id="dormant-toggle" aria-expanded="false"
+        data-show-label="${showLabel}" data-hide-label="${hideLabel}"
+        onclick="toggleDormantReadings()">${showLabel}</button>
+      <div id="dormant-readings" style="display:none">${dormant.map((r,j)=>readingHTML(r, flagging.length+j)).join("")}</div>`;
+  }
+  $("#readings").innerHTML = readingsHTML;
+
+  const conflictEl = $("#conflict");
+  if(DATA.conflict){ conflictEl.style.display=""; conflictEl.innerHTML = "<b>Conflict noted.</b> " + DATA.conflict; }
+  else { conflictEl.style.display="none"; conflictEl.innerHTML=""; }
+}
+function toggleReading(idx){
+  const row = document.querySelector(`#reading-${idx} .reading-row`);
+  const detail = $(`#reading-detail-${idx}`);
+  const expanded = detail.style.display !== "none";
+  detail.style.display = expanded ? "none" : "";
+  row.setAttribute("aria-expanded", String(!expanded));
+  $(`#reading-${idx}`).classList.toggle("expanded", !expanded);
+}
+function toggleDormantReadings(){
+  const panel = $("#dormant-readings");
+  const btn = $("#dormant-toggle");
+  const expanded = panel.style.display !== "none";
+  panel.style.display = expanded ? "none" : "";
+  btn.setAttribute("aria-expanded", String(!expanded));
+  btn.textContent = expanded ? btn.dataset.showLabel : btn.dataset.hideLabel;
+}
+
+/* =====================================================================
+   ITC / COWEN CROSS-REFERENCE — human commentary, never feeds the
+   Hypothesis math. Adapts the real cowenLog.js shape (nested
+   direction.stance, indicatorsCited, compareToHypothesis.agreement) into
+   the desk-memo box.
+   ===================================================================== */
+function renderCowen(){
+  const c = DATA.cowen;
+  const box = $("#cowen");
+  if(!box) return;
+  if(!c || !c.latest){
+    box.innerHTML = `<div class="empty"><div class="big">No Cowen entries logged yet</div>
+      <div class="sub">Human cross-reference only — never feeds the Hypothesis math. Logged by hand in data/itc-cowen-log.md after each video.</div></div>`;
+    return;
+  }
+
+  const e = c.latest;
+  const d = e.direction || {};
+  const age = c.daysSinceLogged;
+  const ageLabel = age === 0 ? "logged today" : age === 1 ? "logged 1 day ago" : `logged ${age} days ago`;
+  const staleClass = (age !== null && age > 21) ? " stale" : "";
+
+  const agreement = e.compareToHypothesis?.agreement || "not_yet_compared";
+  const agreementLabel = {
+    agree: "Agrees with app", conflict: "Conflicts with app",
+    orthogonal: "Orthogonal — not comparable", not_yet_compared: "Not yet compared",
+  }[agreement] || agreement;
+  const agreeBg = agreement==="agree" ? "var(--green-bg)" : agreement==="conflict" ? "var(--red-bg)" : "var(--card)";
+
+  const levels = (e.priceLevels || []).filter(l => l.price != null);
+  const typeColor = t => t==="invalidation" ? "var(--rust)" : t==="target" ? "var(--green)" : "var(--muted-2)";
+  const levelsHTML = levels.length
+    ? levels.map(l => `<div class="cowen-level-row">
+        <span class="cowen-level-price" style="color:${typeColor(l.type)}">${fmt$(l.price)}</span>
+        <span class="cowen-level-type" style="color:${typeColor(l.type)}">${l.type}</span>
+        <span class="cowen-level-note">${l.timeframe && l.timeframe !== "not specified" ? l.timeframe + " — " : ""}${l.note||""}</span>
+      </div>`).join("")
+    : `<div class="cowen-level-note">No specific price levels given in this entry.</div>`;
+
+  const appSugg = e.compareToHypothesis?.appSuggestions || [];
+  const appLevelsHTML = appSugg.length
+    ? appSugg.map(s => `
+        <div class="app-level-row"><span class="k">Entry (${s.dir}, ${s.archetype})</span><span class="v">${fmt$(s.entry)}</span></div>
+        <div class="app-level-row"><span class="k">Invalidation</span><span class="v" style="color:var(--rust)">${fmt$(s.invalidation)}</span></div>
+        <div class="app-level-row"><span class="k">Target</span><span class="v" style="color:var(--green)">${fmt$(s.target)}</span></div>
+      `).join("")
+    : `<div class="app-level-note" style="font:400 11.5px/1.5 var(--sans);color:var(--muted)">No app setup live at time of comparison.</div>`;
+
+  const indicatorsHTML = (e.indicatorsCited||[]).map(ind => `
+    <div class="cowen-ind-row"><span class="n">${ind.name}</span><span class="v">${ind.valueOrZone}</span></div>`).join("");
+
+  const tallyLine = (label, tally) => {
+    const parts = Object.entries(tally).filter(([,v]) => v > 0).map(([k,v]) => `${v} ${k.replace(/_/g," ")}`);
+    return `<div><span class="k">${label}:</span> ${parts.length ? parts.join(" · ") : "none yet"}</div>`;
+  };
+  const resolvedLine = c.gradedCount
+    ? tallyLine("Cowen resolved", c.outcomeTally.cowen) + tallyLine("App resolved", c.outcomeTally.app)
+    : `<div><span class="k">Resolved outcomes:</span> none graded yet (${c.entryCount} entr${c.entryCount===1?"y":"ies"} logged)</div>`;
+
+  const readyHTML = (c.readyToGrade || []).map(r => `
+    <div class="cowen-ready">
+      "${r.videoTitle || r.date}" is past its resolution check-in (${r.resolutionDate}).
+      <button class="btn ghost small" style="margin-left:8px" onclick="toggleGradeInline('${r.date}')">Grade this call →</button>
+      <div class="take-inline" id="grade-inline-${r.date}">
+        <div class="take-fields">
+          <div><label>Cowen grade</label><select id="grade-cowen-${r.date}"><option value="win">Win</option><option value="loss">Loss</option><option value="mixed">Mixed</option></select></div>
+          <div><label>App grade</label><select id="grade-app-${r.date}"><option value="win">Win</option><option value="loss">Loss</option><option value="mixed">Mixed</option></select></div>
+        </div>
+        <div class="take-fields">
+          <div><label>Actual price at resolution</label><input type="number" id="grade-price-${r.date}"></div>
+          <div><label>Magnitude (%)</label><input type="number" id="grade-mag-${r.date}" step="0.1"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn ghost small" onclick="toggleGradeInline('${r.date}')">Cancel</button>
+          <button class="btn primary small" onclick="submitGradeCowen('${r.date}')">Save</button>
+        </div>
+      </div>
+    </div>`).join("");
+
+  box.innerHTML = `
+    <div class="cowen-box-head">
+      <div>
+        <div class="cowen-video-title">${e.videoTitle || "Untitled"}</div>
+        <div class="cowen-badges">
+          <span class="cowen-pill">${d.stance ? d.stance[0].toUpperCase()+d.stance.slice(1) : "—"}</span>
+          <span class="cowen-pill mut">conviction · ${e.conviction || "not stated"}</span>
+          <span class="cowen-pill mut">${d.timeframe || "no timeframe stated"}</span>
+        </div>
+      </div>
+      <div class="cowen-agree">
+        <span class="cowen-agree-pill ${agreement}">${agreementLabel}</span>
+        <div class="cowen-age${staleClass}">${ageLabel}${staleClass ? " · stale" : ""}</div>
+      </div>
+    </div>
+    <div class="cowen-body">
+      <p class="cowen-note">${d.note || ""}</p>
+      <div class="cowen-compare">
+        <div>
+          <div class="compare-label cowen">Cowen's levels</div>
+          ${levelsHTML}
+        </div>
+        <div>
+          <div class="compare-label app">Our setup, for comparison</div>
+          ${appLevelsHTML}
+          <div class="cowen-compare-note" style="background:${agreeBg}">${e.compareToHypothesis?.note || ""}</div>
+        </div>
+      </div>
+      ${indicatorsHTML ? `<div class="cowen-indicators">
+        <div class="cowen-indicators-label">Indicators he cited</div>
+        <div class="cowen-indicators-grid">${indicatorsHTML}</div>
+      </div>` : ""}
+      ${readyHTML}
+      <div class="cowen-footer">
+        <div class="cowen-tally">
+          ${tallyLine("At-the-time agreement", c.agreementTally)}
+          ${resolvedLine}
+        </div>
+        ${e.sourceUrl ? `<a class="cowen-source-link" href="${e.sourceUrl}" target="_blank" rel="noopener">source · ${e.date}</a>` : `<span class="cowen-source-link" style="text-decoration:none">${e.date}</span>`}
+      </div>
+    </div>
+  `;
+}
+
+/* =====================================================================
+   CYCLE TIMELINE — vertical list only (spec §5/§6: a horizontal ribbon
+   with absolute-positioned labels collided and forced scrolling — must
+   not be reintroduced).
+   ===================================================================== */
+function renderCycle(){
+  const c = DATA.cycle;
+  const rows = c.rows.map(r=>`
+    <div class="cyc-row ${r.kind}">
+      <span class="cyc-dot"></span>
+      <div class="cyc-rowhead">
+        <span class="cyc-lab">${r.label}</span>
+        <span class="cyc-sub">${r.sub}</span>
+      </div>
+      ${r.phase!=="—" ? `<span class="cyc-phase">${r.phase}</span>` : ""}
+      <div class="cyc-note">${r.note}</div>
+    </div>`).join("");
+  $("#cycle").innerHTML = `
+    <div class="cycle-list">${rows}</div>
+    <div class="cycle-foot">
+      <div class="cyc-read"><div style="margin-bottom:8px">${c.analogue}</div>${c.read}</div>
+      <div class="cyc-caveat"><b>Base rates, not destiny.</b> ${c.caveat.replace(/^<b>[^<]*<\/b>\s*/,"")}</div>
+    </div>`;
+}
+
+/* =====================================================================
+   CALCULATOR — correct-but-simplified. Assumptions labelled inline.
+   v3 §2: Both directions are first-class. The formulas below are symmetric
+   by design — short and long share the same gross P&L shape, mirrored by
+   sign (isShort ? ... : ... throughout). Which direction is live on a given
+   day is decided by which setup archetype (§1) currently qualifies, not by
+   a default. (No math changed from prior passes; presentation only.)
+   ===================================================================== */
+function computeEstimate(s, inp){
+  const {size, mode, hold, collateral, borrowAPR, leverage} = inp;
+  const E = s.entry, X = s.target;
+  const isShort = s.dir === "Short";
+  const gross = isShort ? size*(E-X)/E : size*(X-E)/E;
+  let financing = 0, effLev = 1, liqPrice = null, liqBufferPct = null, income = 0;
+  const yrs = hold/365;
+
+  if(mode === "cash"){ financing = 0; effLev = 1; }
+  else if(mode === "aave"){
+    financing = size * borrowAPR * yrs;
+    income    = collateral * DATA.rates.aaveSupplyAPR * yrs;
+    effLev = collateral>0 ? size/collateral : 0;
+    const LT = DATA.rates.aaveLiqThreshold;
+    liqPrice = collateral>0 ? (collateral*LT*E)/size : null;
+    if(liqPrice) liqBufferPct = isShort ? (liqPrice-E)/E : (E-liqPrice)/E;
+  }
+  else if(mode === "perp"){
+    const periods = hold*3;
+    const fundingPnl = (isShort?1:-1) * DATA.rates.fundingRate8h * size * periods;
+    financing = -fundingPnl;
+    effLev = leverage;
+    liqPrice = isShort ? E*(1+1/leverage) : E*(1-1/leverage);
+    liqBufferPct = 1/leverage;
+  }
+  const net = gross - financing + income;
+  return {gross, financing, income, net, effLev, liqPrice, liqBufferPct, isShort, mode};
+}
+
+function wireCalc(s, i){
+  const el = id => document.getElementById(id+"-"+i);
+  const state = { mode:"aave" };
+  const modeBtns = el("mode").querySelectorAll("button");
+  modeBtns.forEach(b=>b.addEventListener("click", ()=>{
+    state.mode = b.dataset.mode;
+    modeBtns.forEach(x=>x.setAttribute("aria-pressed", x===b ? "true":"false"));
+    el("aave").classList.toggle("hidden", state.mode!=="aave");
+    el("perp-field").style.display = state.mode==="perp" ? "" : "none";
+    update();
+  }));
+  ["size","hold","lev","coll","bapr"].forEach(k=>{ const n = el(k); if(n) n.addEventListener("input", update); });
+
+  function update(){
+    const size = +el("size").value, hold = +el("hold").value, leverage = +el("lev").value;
+    const collateral = +el("coll").value, borrowAPR = (+el("bapr").value)/100;
+    el("size-lbl").textContent = fmt$(size);
+    el("hold-lbl").textContent = hold + " days";
+    el("lev-lbl").textContent = leverage + "×";
+
+    const r = computeEstimate(s, {size, mode:state.mode, hold, collateral, borrowAPR, leverage});
+    const netAtTargetLabel = "If target hits";
+    const netAtStopLabel = "If stopped out";
+    // "at stop" = gross P&L if price instead hits invalidation, same financing/income drag
+    const isShort = s.dir === "Short";
+    const stopGross = isShort ? size*(s.entry-s.invalidation)/s.entry : size*(s.invalidation-s.entry)/s.entry;
+    const stopNet = stopGross - r.financing + r.income;
+
+    el("tiles").innerHTML = `
+      <div class="tile win"><div class="k">${netAtTargetLabel}</div><div class="v">${fmtSigned$(r.net)}</div><div class="sub">net of financing &amp; yield</div></div>
+      <div class="tile loss"><div class="k">${netAtStopLabel}</div><div class="v">${fmtSigned$(stopNet)}</div><div class="sub">loss at invalidation</div></div>`;
+
+    const finLabel = state.mode==="perp" ? "Funding (short earns if +)" : "Financing cost";
+    const finVal = state.mode==="perp"
+        ? `<span class="v ${r.financing<=0?'pos':'neg'}">${fmtSigned$(-r.financing)}</span>`
+        : `<span class="v neg">−${fmt$(r.financing)}</span>`;
+
+    let rows = `<div class="calc-line"><span>Gross P&amp;L at target</span><span class="v ${r.gross>=0?'pos':'neg'}">${fmtSigned$(r.gross)}</span></div>
+      <div class="calc-line"><span>${finLabel}</span>${finVal}</div>`;
+    if(state.mode==="aave"){
+      rows += `<div class="calc-line"><span>Collateral yield</span><span class="v pos">${fmtSigned$(r.income)}</span></div>
+        <div class="calc-line"><span>Effective leverage</span><span class="v">${r.effLev? r.effLev.toFixed(2)+"×":"—"}</span></div>`;
+    } else {
+      rows += `<div class="calc-line"><span>Effective leverage</span><span class="v">${r.effLev.toFixed(2)}×</span></div>
+        <div class="calc-line"><span>Capital at risk</span><span class="v">${state.mode==="perp"?fmt$(size/r.effLev):fmt$(size)}</span></div>`;
+    }
+    let liq = "";
+    if(r.liqPrice){
+      const near = r.liqBufferPct!=null && r.liqBufferPct < 0.12;
+      rows += `<div class="calc-line"><span>Liquidation price</span><span class="v${near?' neg':''}">${fmt$(r.liqPrice)}</span></div>
+        <div class="calc-line"><span>Buffer to liquidation</span><span class="v${near?' neg':''}">${pct(r.liqBufferPct)}</span></div>`;
+      if(near) liq = `<div class="liq-warn">⚠ Thin liquidation buffer — a ${pct(r.liqBufferPct)} move against you wipes the position.</div>`;
+    }
+    el("out").innerHTML = rows;
+    if(liq) el("out").innerHTML += liq;
+
+    let a = "Estimate at target price only. Excludes slippage, gas, and trading/exchange fees. ";
+    if(state.mode==="aave") a += "Interest approximated on entry notional over the hold; liquidation uses a "
+      + (DATA.rates.aaveLiqThreshold*100)+"% collateral threshold. ";
+    if(state.mode==="perp") a += "Funding assumes the current rate holds for the whole hold — it won't; treat as indicative. ";
+    if(state.mode==="cash") a += "Unleveraged: no borrow, no liquidation. ";
+    el("assump").textContent = a;
+  }
+  update();
+}
+
+/* =====================================================================
+   TRACKING DELTA — nav tabs, My Trades, Performance, Log Call modal,
+   inline mark-taken/close/grade actions. Fetches /api/* on tab-open and
+   after every successful write (same-day visibility) — the nightly DATA
+   block above is only the first-paint fallback.
+   ===================================================================== */
+async function postJson(url, body){
+  let res;
+  try{
+    res = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) });
+  } catch(err){
+    showFetchError();
+    throw new Error("Can't reach the server — run launch.bat and try again.");
+  }
+  const json = await res.json().catch(()=>({ok:false, reason:"invalid response"}));
+  if(!res.ok || !json.ok) throw new Error(json.reason || ("HTTP "+res.status));
+  return json;
+}
+async function getJson(url){
+  try{
+    const res = await fetch(url);
+    return await res.json();
+  } catch{
+    return null; // silent — the DATA-block fallback already rendered
+  }
+}
+let bannerTimer = null;
+function showBanner(msg, kind){
+  const b = $("#action-banner");
+  b.textContent = msg;
+  b.className = "action-banner open " + kind;
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(()=>b.classList.remove("open"), kind==="error" ? 6000 : 3500);
+}
+function showFetchError(){ showBanner("Can't reach the server — run launch.bat and try again.", "error"); }
+
+// Distinct from ordinary per-field staleness (DATA.freshness above) — this
+// covers a total run-daily.js crash, where the HTML never got regenerated
+// at all today. Silent failure otherwise: the page would just keep showing
+// yesterday's briefing with no sign anything went wrong. (design review, Pass 2)
+async function checkRunStatus(){
+  const status = await getJson("/api/status");
+  if(!status || status.ok !== false) return;
+  const fb = $("#freshness-banner");
+  fb.style.display = "";
+  fb.className = "freshness-banner stale";
+  fb.querySelector(".dot").className = "dot stale";
+  const failedDate = new Date(status.failedAt).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+  $("#freshness-text").textContent = `Today's briefing failed to generate (${failedDate}) — showing ${DATA.asOf}'s.`;
+}
+
+// Render core data now, before any of the UI wiring below runs — a bug in
+// nav-tab/modal/trades wiring must never be able to block the actual
+// briefing content from showing (see git history: it already has once).
+render();
+checkRunStatus();
+
+try {
+
+/* ---- public-mirror redaction ----
+   On the public GitHub Pages copy (DATA.isPublicBuild, set when
+   GITHUB_ACTIONS=true), trade-log.md/outcomes.md live only in the private
+   Investment-Brief-Engine repo and are never pushed to the public
+   Investment-Brief repo that Pages serves — so this hides the UI that
+   would otherwise point at private trade data. Marco's local copy always
+   renders both normally.
+   NOTE: hide the section, don't remove it — later code (e.g. the
+   #trade-filter button wiring below) unconditionally queries into
+   #view-trades and would throw if it were gone, aborting the rest of this
+   script (including the trailing render() call). Hidden + never populated
+   (refreshTrades()/renderTradesList() only run if the tab is opened, and
+   the tab button itself is removed) is just as private, without the crash. */
+if(DATA.isPublicBuild){
+  const tradesTab = document.querySelector('.nav-tab[data-view="trades"]');
+  if(tradesTab) tradesTab.remove();
+  const tradesView = $("#view-trades");
+  if(tradesView) tradesView.style.display = "none";
+  const perfSubtitle = $("#performance-subtitle");
+  if(perfSubtitle) perfSubtitle.textContent = "Predictor accuracy — how the App's calls and Ben Cowen's calls have done.";
+}
+
+/* ---- nav tabs ---- */
+function activateTab(view){
+  document.querySelectorAll(".nav-tab").forEach(t=>t.setAttribute("aria-selected", t.dataset.view===view ? "true":"false"));
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  $("#view-"+view).classList.add("active");
+  if(view === "trades") refreshTrades();
+  if(view === "performance") { refreshPerformance(); refreshLedger(); }
+}
+document.querySelectorAll(".nav-tab").forEach(tab=>{
+  tab.addEventListener("click", ()=>activateTab(tab.dataset.view));
+});
+
+/* ---- My Trades ---- */
+let lastTradeLog = DATA.tradeLog || {active:[],closed:[],activeCount:0,closedCount:0,realizedPnLTotal:0};
+let tradeFilter = "active";
+$("#trade-filter").querySelectorAll("button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    $("#trade-filter").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", x===b?"true":"false"));
+    tradeFilter = b.dataset.filter;
+    renderTradesList(lastTradeLog);
+  });
+});
+async function refreshTrades(){
+  renderTradesList(lastTradeLog);
+  const fresh = await getJson("/api/trades");
+  if(fresh){ lastTradeLog = fresh; renderTradesList(lastTradeLog); }
+}
+function tradeCardHTML(t){
+  const s = t.suggestion;
+  const daysOpen = t.status==="Active" ? Math.floor((Date.now()-new Date(t.takenAt).getTime())/86400000) : null;
+  return `<div class="trade-card">
+    <div class="trade-top">
+      <div class="trade-id">
+        <span class="predictor-pill">App</span>
+        <div class="trade-title">${DATA.asset} — ${s.dir}</div>
+        <span class="status-pill ${t.status.toLowerCase()}">${t.status}</span>
+      </div>
+      <div class="trade-actions">
+        ${t.status==="Active" ? `<button class="btn ghost small" onclick="toggleCloseInline('${t.id}')">Close trade</button>` : `<button class="btn ghost small" disabled>Locked</button>`}
+      </div>
+    </div>
+    <div class="trade-dates">Opened ${new Date(t.takenAt).toLocaleDateString("en-US")} · from Suggestion "${s.tagline}"${s.archetype?` (Archetype ${s.archetype})`:""}</div>
+    <div class="trade-grid">
+      <div class="trade-field"><div class="k">Entry (actual)</div><div class="v">${fmt$(t.entryActual)}</div><div class="orig">suggested ${fmt$(s.entry)}</div></div>
+      <div class="trade-field"><div class="k">Target (actual)</div><div class="v">${fmt$(t.targetActual)}</div><div class="orig">suggested ${fmt$(s.target)}</div></div>
+      <div class="trade-field"><div class="k">Size</div><div class="v">${t.size}</div></div>
+      ${t.status==="Active"
+        ? `<div class="trade-field"><div class="k">Days open</div><div class="v">${daysOpen}</div></div>`
+        : `<div class="trade-field"><div class="k">Realized P&amp;L</div><div class="v" style="color:${t.realizedPnL>=0?"var(--green)":"var(--rust)"}">${fmtSigned$(t.realizedPnL)}</div></div>`}
+    </div>
+    ${t.status==="Closed" ? `<div class="trade-locked-note">Closed trades are locked — no further edits, same as a resolved Outcome.</div>` : `
+    <div class="take-inline" id="close-inline-${t.id}">
+      <div class="take-fields">
+        <div><label>Exit (actual)</label><input type="number" id="exit-${t.id}"></div>
+        <div><label>Closed date</label><input type="date" id="closedat-${t.id}" value="${new Date().toISOString().slice(0,10)}"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="btn ghost small" onclick="toggleCloseInline('${t.id}')">Cancel</button>
+        <button class="btn primary small" onclick="submitCloseTrade('${t.id}')">Save</button>
+      </div>
+    </div>`}
+  </div>`;
+}
+function renderTradesList(tradeLog){
+  const list = $("#trades-list");
+  let items;
+  if(tradeFilter==="active") items = tradeLog.active;
+  else if(tradeFilter==="closed") items = tradeLog.closed;
+  else items = [...tradeLog.active, ...tradeLog.closed];
+  if(!items.length){
+    list.innerHTML = `<div class="empty"><div class="big">${tradeFilter==="active" ? "That's everything currently active." : "Nothing here yet."}</div>
+      <div class="sub">${tradeFilter==="active" ? 'Switch to "Closed" or "All" to see history.' : 'Mark a Suggestion as taken from the Briefing tab to see it here.'}</div></div>`;
+    return;
+  }
+  list.innerHTML = items.map(tradeCardHTML).join("");
+}
+function toggleCloseInline(id){ $("#close-inline-"+id).classList.toggle("open"); }
+async function submitCloseTrade(id){
+  const exitActual = +$("#exit-"+id).value;
+  const closedAt = $("#closedat-"+id).value;
+  try{
+    await postJson("/api/trades", { action:"close", id, exitActual, closedAt: closedAt ? new Date(closedAt).toISOString() : new Date().toISOString() });
+    await refreshTrades();
+    showBanner("Trade closed.", "success");
+  } catch(err){ showBanner(err.message, "error"); }
+}
+function toggleTakeInline(i){ $("#take-inline-"+i).classList.toggle("open"); }
+async function submitTakeTrade(i){
+  const s = DATA.suggestions[i];
+  const entryActual = +$("#take-entry-"+i).value;
+  const targetActual = +$("#take-target-"+i).value;
+  const size = +$("#take-size-"+i).value;
+  try{
+    await postJson("/api/trades", { action:"take", suggestion: s, entryActual, targetActual, size });
+    toggleTakeInline(i);
+    showBanner("Trade marked as taken — see My Trades.", "success");
+    activateTab("trades");
+  } catch(err){ showBanner(err.message, "error"); }
+}
+
+/* ---- Performance ---- */
+function emptyPredictorStat(){
+  return {resolvedCount:0,win:0,loss:0,mixed:0,hitRate:null,avgMagnitude:null,
+    wobbleSplit:{Stable:0,Adjusted:0,Reversed:0},brier:null,brierN:0,hitRateCaveat:true,calibrationCaveat:true};
+}
+let lastPerformance = DATA.performance || {perPredictor:{App:emptyPredictorStat(),"Ben Cowen":emptyPredictorStat()}, resolvedCalls:[]};
+async function refreshPerformance(){
+  renderPerformanceBody(lastPerformance);
+  const fresh = await getJson("/api/performance");
+  if(fresh){ lastPerformance = fresh; renderPerformanceBody(lastPerformance); }
+}
+function statTileHTML(label, pillClass, stat){
+  const hitRateStr = stat.hitRate!=null ? pct0(stat.hitRate) : "—";
+  const magStr = stat.avgMagnitude!=null ? (stat.avgMagnitude>=0?"+":"")+stat.avgMagnitude.toFixed(1)+"%" : "—";
+  const brierStr = stat.brier!=null ? stat.brier.toFixed(3) : "—";
+  const wobbleChips = ["Stable","Adjusted","Reversed"].filter(k=>stat.wobbleSplit[k]>0)
+    .map(k=>`<span class="wobble-chip ${k.toLowerCase()}">${stat.wobbleSplit[k]} ${k.toLowerCase()}</span>`).join("");
+  return `<div class="stat-tile">
+    <div class="stat-tile-head"><span class="predictor-pill ${pillClass}">${label}</span><span class="stat-tile-n">${stat.resolvedCount} resolved</span></div>
+    <div class="stat-row"><div class="stat-big">${hitRateStr}</div><div class="stat-label">hit rate, avg magnitude ${magStr}</div></div>
+    ${stat.hitRateCaveat ? `<div class="caveat" style="margin-top:12px;margin-bottom:0"><b>Small sample.</b> Only ${stat.resolvedCount} resolved calls — read as directional, not conclusive.</div>` : ""}
+    <div class="stat-row"><div class="stat-big" style="font-size:20px">${brierStr}</div><div class="stat-label">Brier score (calibration), lower is better${stat.calibrationCaveat?" — small sample":""}</div></div>
+    ${wobbleChips ? `<div class="wobble-split">${wobbleChips}</div>` : ""}
+  </div>`;
+}
+function perfRowHTML(c, idx){
+  const magStr = c.magnitude!=null ? (c.magnitude>=0?"+":"")+c.magnitude.toFixed(1)+"%" : "—";
+  const outcomeLabel = c.outcome ? c.outcome[0].toUpperCase()+c.outcome.slice(1) : "—";
+  const wobbleLabel = (c.wobble && c.wobble.label) || "Stable";
+  return `<tr class="perf-row" onclick="toggleTablePerfRow(${idx})">
+    <td><span class="predictor-pill ${c.predictor==="Ben Cowen"?"cowen":""}">${c.predictor}</span></td>
+    <td class="perf-call">${outcomeLabel}${c.date?`, ${c.date}`:""}</td>
+    <td class="mono">${(c.resolvedAt||c.date||"").slice(0,10)}</td>
+    <td><span class="outcome-pill ${c.outcome||""}">${outcomeLabel}</span></td>
+    <td class="mono perf-mag ${(c.magnitude||0)>=0?"pos":"neg"}">${magStr}</td>
+    <td><span class="wobble-chip ${wobbleLabel.toLowerCase()}">${wobbleLabel}</span></td>
+    <td class="perf-chev">›</td>
+  </tr>
+  <tr class="perf-detail-row" id="perf-detail-${idx}">
+    <td colspan="7"><div class="perf-detail-inner">
+      <div class="perf-fact-grid">
+        <div class="perf-fact"><div class="k">Revisions before resolving</div>${(c.wobble && c.wobble.revisionCount) ?? 0}</div>
+        <div class="perf-fact"><div class="k">Direction</div>${c.wobble && c.wobble.direction==="flipped" ? `Flipped (${c.wobble.flipCount}×)` : "Held steady"}</div>
+        <div class="perf-fact"><div class="k">Target drift</div>${(c.wobble && c.wobble.targetDrift) || "N/A"}</div>
+        <div class="perf-fact"><div class="k">Timeline drift</div>${(c.wobble && c.wobble.horizonDrift) || "no change"}</div>
+      </div>
+    </div></td>
+  </tr>`;
+}
+function toggleTablePerfRow(idx){ $("#perf-detail-"+idx).classList.toggle("open"); }
+function renderPerformanceBody(perf){
+  const box = $("#performance-body");
+  const app = perf.perPredictor.App, cowen = perf.perPredictor["Ben Cowen"];
+  const rows = perf.resolvedCalls.map((c,i)=>perfRowHTML(c,i)).join("");
+  const tl = lastTradeLog;
+  box.innerHTML = `
+    <div class="stat-tiles">
+      ${statTileHTML("App","",app)}
+      ${statTileHTML("Ben Cowen","cowen",cowen)}
+    </div>
+    <div class="sec-label" style="margin-bottom:10px">Resolved calls</div>
+    <div class="perf-table-note">Table, not cards — this list is the one that grows for years, so it stays scannable at 20+ rows instead of turning into a wall of cards. Click a row to expand its wobble detail.</div>
+    ${rows ? `<div class="perf-table-wrap"><table class="perf-table"><thead><tr><th>Predictor</th><th>Call</th><th>Resolved</th><th>Outcome</th><th>Magnitude</th><th>Wobble</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : `<div class="empty"><div class="big">Nothing resolved yet.</div><div class="sub">Grade a Cowen call or a played-out Hypothesis to see it here.</div></div>`}
+    ${ledgerBodyHTML()}
+    ${DATA.isPublicBuild ? "" : `
+    <div class="pnl-section">
+      <div class="pnl-eyebrow">My Trades — realized P&amp;L</div>
+      <div class="sec-sub" style="margin-bottom:16px">Separate from the accuracy scoring above — a correct call you didn't act on (or sized differently) shows up here, not there.</div>
+      <div class="stat-tiles" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="stat-tile"><div class="stat-tile-n">Realized P&amp;L</div><div class="stat-big" style="font-size:26px;color:${tl.realizedPnLTotal>=0?"var(--green)":"var(--rust)"};margin-top:8px">${fmtSigned$(tl.realizedPnLTotal)}</div></div>
+        <div class="stat-tile"><div class="stat-tile-n">Trades closed</div><div class="stat-big" style="font-size:26px;margin-top:8px">${tl.closedCount}</div></div>
+        <div class="stat-tile"><div class="stat-tile-n">Trades active</div><div class="stat-big" style="font-size:26px;margin-top:8px">${tl.activeCount}</div></div>
+      </div>
+    </div>`}`;
+  wireLedgerFilters();
+}
+
+/* ---- Decision Ledger ----
+   Lives inside #performance-body (rendered by renderPerformanceBody above,
+   right after "Resolved calls" and before the My Trades block) rather than
+   its own container, so it follows the exact DOM position the feature
+   calls for. Its own refresh cycle (GET /api/ledger) is independent of
+   Performance's — refreshLedger() re-runs renderPerformanceBody(lastPerformance)
+   to redraw, same as how this function already reads the separate
+   lastTradeLog global for the My Trades block above. */
+let lastLedger = DATA.ledger || { entries: [], priceDataAvailable: false };
+let ledgerFilter = { status: "all", archetype: "all", regime: "all" };
+// Mirrors src/outcome.js's HIT_RATE_CAVEAT_THRESHOLD — duplicated because
+// the filtered-subset stat tiles are computed with a small client-side
+// reduce (see quickLedgerSummary) rather than re-running src/ledger.js's
+// summarizeLedger() here, which has no browser-side build/import path in
+// this single-file page. A single small threshold constant is low-risk to
+// keep in sync; watch this if that source value ever changes.
+const LEDGER_HIT_RATE_CAVEAT_THRESHOLD = 10;
+
+async function refreshLedger(){
+  renderPerformanceBody(lastPerformance);
+  const fresh = await getJson("/api/ledger");
+  if(fresh){ lastLedger = fresh; renderPerformanceBody(lastPerformance); }
+}
+
+// archetype/regime only — the admitted/denied status filter narrows the
+// TABLE (below) but not the two headline tiles, since each tile already IS
+// one status's number; applying the status filter to them would just zero
+// one tile out.
+function ledgerTileScope(){
+  return (lastLedger.entries||[]).filter(e=>
+    (ledgerFilter.archetype==="all" || e.archetype===ledgerFilter.archetype) &&
+    (ledgerFilter.regime==="all" || (e.regimeAtFirstSeen||"unknown")===ledgerFilter.regime));
+}
+function ledgerTableScope(){
+  return ledgerTileScope().filter(e => ledgerFilter.status==="all" || e.status===ledgerFilter.status);
+}
+function quickLedgerSummary(entries){
+  const split = status => {
+    const subset = entries.filter(e=>e.status===status);
+    const hitTarget = subset.filter(e=>e.resolution.status==="hit_target").length;
+    const hitInvalidation = subset.filter(e=>e.resolution.status==="hit_invalidation").length;
+    const stillOpen = subset.filter(e=>e.resolution.status==="still_open").length;
+    return { hitTarget, hitInvalidation, stillOpen, resolvedCount: hitTarget+hitInvalidation };
+  };
+  const admitted = split("admitted"), denied = split("denied");
+  return {
+    admitted: { ...admitted, hitRate: admitted.resolvedCount>0 ? admitted.hitTarget/admitted.resolvedCount : null },
+    denied: { ...denied, gateVindicationRate: denied.resolvedCount>0 ? denied.hitInvalidation/denied.resolvedCount : null },
+  };
+}
+function ledgerStatTileHTML(label, valueStr, sub, resolvedCount){
+  const caveat = resolvedCount!=null && resolvedCount < LEDGER_HIT_RATE_CAVEAT_THRESHOLD;
+  return `<div class="stat-tile">
+    <div class="stat-tile-head"><span class="predictor-pill">${label}</span></div>
+    <div class="stat-row"><div class="stat-big">${valueStr}</div><div class="stat-label">${sub}</div></div>
+    ${caveat ? `<div class="caveat" style="margin-top:12px;margin-bottom:0"><b>Small sample.</b> Only ${resolvedCount} resolved — read as directional, not conclusive.</div>` : ""}
+  </div>`;
+}
+const LEDGER_OUTCOME_LABEL = { hit_target: "Hit target", hit_invalidation: "Hit invalidation", still_open: "Still open", unknown: "Unknown" };
+function ledgerRowHTML(e, idx){
+  const r = e.resolution;
+  const outcomeClass = r.status==="hit_target" ? "hit" : r.status==="hit_invalidation" ? "miss" : "mixed";
+  const statusClass = e.status==="admitted" ? "active" : "closed";
+  const magStr = r.magnitudePct!=null ? (r.magnitudePct>=0?"+":"")+pct(r.magnitudePct) : "—";
+  return `<tr class="perf-row" onclick="toggleLedgerRow(${idx})">
+    <td><span class="status-pill ${statusClass}">${e.status}</span></td>
+    <td class="perf-call">${e.dir} — ${e.tagline||e.archetype} (${e.archetype})</td>
+    <td class="mono">${e.firstSeenDate}</td>
+    <td><span class="outcome-pill ${outcomeClass}">${LEDGER_OUTCOME_LABEL[r.status]||r.status}</span></td>
+    <td class="mono perf-mag ${(r.magnitudePct||0)>=0?"pos":"neg"}">${magStr}</td>
+    <td class="mono">${r.daysToResolve ?? "—"}</td>
+    <td class="perf-chev">›</td>
+  </tr>
+  <tr class="perf-detail-row" id="ledger-detail-${idx}">
+    <td colspan="7"><div class="perf-detail-inner">
+      <div class="perf-fact-grid">
+        <div class="perf-fact"><div class="k">Entry / invalidation / target</div>${fmt$(e.entry)} / ${fmt$(e.invalidation)} / ${fmt$(e.target)}</div>
+        <div class="perf-fact"><div class="k">Regime at first seen</div>${e.regimeAtFirstSeen || "—"}</div>
+        <div class="perf-fact"><div class="k">Seen</div>${e.firstSeenDate} → ${e.lastSeenDate} (${e.occurrences}×, gen ${e.generation})</div>
+        <div class="perf-fact"><div class="k">Gate reason</div>${e.gateReason || "—"}</div>
+      </div>
+      ${e.caution ? `<div class="caveat" style="margin-top:12px"><b>Caution.</b> ${e.caution}</div>` : ""}
+      ${e.rationale ? `<div class="sec-sub" style="margin-top:12px;margin-bottom:0">${e.rationale}</div>` : ""}
+    </div></td>
+  </tr>`;
+}
+function toggleLedgerRow(idx){ $("#ledger-detail-"+idx).classList.toggle("open"); }
+function ledgerBodyHTML(){
+  const entries = lastLedger.entries || [];
+  const tileScope = ledgerTileScope();
+  const tableRows = ledgerTableScope();
+  const quick = quickLedgerSummary(tileScope);
+  const archetypes = [...new Set(entries.map(e=>e.archetype))].sort();
+  const regimes = [...new Set(entries.map(e=>e.regimeAtFirstSeen || "unknown"))].sort();
+  const rowsHtml = tableRows.map((e,i)=>ledgerRowHTML(e,i)).join("");
+
+  const priceNote = lastLedger.priceDataAvailable===false
+    ? `<div class="caveat" style="margin-bottom:16px"><b>Price data unavailable.</b> Resolution can't be computed right now — showing what's known from suggestion history alone.</div>` : "";
+
+  const filterBar = entries.length ? `<div class="ledger-filter" id="ledger-filter">
+    <div class="trade-filter" id="ledger-status-filter" role="group" aria-label="Filter ledger by status">
+      <button type="button" data-filter="all" aria-pressed="${ledgerFilter.status==="all"}">All</button>
+      <button type="button" data-filter="admitted" aria-pressed="${ledgerFilter.status==="admitted"}">Admitted</button>
+      <button type="button" data-filter="denied" aria-pressed="${ledgerFilter.status==="denied"}">Denied</button>
+    </div>
+    <select id="ledger-archetype-select" aria-label="Filter ledger by archetype">
+      <option value="all">All archetypes</option>
+      ${archetypes.map(a=>`<option value="${a}" ${ledgerFilter.archetype===a?"selected":""}>${a}</option>`).join("")}
+    </select>
+    <select id="ledger-regime-select" aria-label="Filter ledger by regime">
+      <option value="all">All regimes</option>
+      ${regimes.map(r=>`<option value="${r}" ${ledgerFilter.regime===r?"selected":""}>${r}</option>`).join("")}
+    </select>
+  </div>` : "";
+
+  return `
+    <div class="view-head" style="margin-top:32px">
+      <div>
+        <div class="sec-label">Decision Ledger</div>
+        <div class="sec-sub" style="margin-bottom:0">Every Suggestion the gate has ever seen — admitted or denied — graded against what price actually did.</div>
+      </div>
+    </div>
+    ${priceNote}
+    <div class="stat-tiles">
+      ${ledgerStatTileHTML("Admitted hit rate", quick.admitted.hitRate!=null?pct0(quick.admitted.hitRate):"—", `${quick.admitted.resolvedCount} resolved, ${quick.admitted.stillOpen} open`, quick.admitted.resolvedCount)}
+      ${ledgerStatTileHTML("Gate vindication rate", quick.denied.gateVindicationRate!=null?pct0(quick.denied.gateVindicationRate):"—", `${quick.denied.resolvedCount} resolved, ${quick.denied.stillOpen} open`, quick.denied.resolvedCount)}
+    </div>
+    ${filterBar}
+    ${rowsHtml ? `<div class="perf-table-wrap"><table class="perf-table"><thead><tr><th>Status</th><th>Setup</th><th>First seen</th><th>Outcome</th><th>Magnitude</th><th>Days</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`
+      : `<div class="empty"><div class="big">${entries.length ? "No entries match this filter." : "Nothing in the ledger yet."}</div><div class="sub">${entries.length ? "Try a broader filter." : "Fills in as setups fire and time passes to resolve them."}</div></div>`}
+  `;
+}
+function wireLedgerFilters(){
+  const bar = $("#ledger-filter");
+  if(!bar) return;
+  bar.querySelectorAll("#ledger-status-filter button").forEach(b=>{
+    b.addEventListener("click", ()=>{ ledgerFilter.status = b.dataset.filter; renderPerformanceBody(lastPerformance); });
+  });
+  const archSel = $("#ledger-archetype-select");
+  if(archSel) archSel.addEventListener("change", ()=>{ ledgerFilter.archetype = archSel.value; renderPerformanceBody(lastPerformance); });
+  const regSel = $("#ledger-regime-select");
+  if(regSel) regSel.addEventListener("change", ()=>{ ledgerFilter.regime = regSel.value; renderPerformanceBody(lastPerformance); });
+}
+
+/* ---- Grade a Cowen call (from the Briefing tab's cross-reference box) ---- */
+function toggleGradeInline(date){ $("#grade-inline-"+date).classList.toggle("open"); }
+async function submitGradeCowen(date){
+  const cowenGrade = $("#grade-cowen-"+date).value;
+  const appGrade = $("#grade-app-"+date).value;
+  const actualPriceAtResolution = +$("#grade-price-"+date).value;
+  const magnitude = +$("#grade-mag-"+date).value;
+  try{
+    await postJson("/api/resolve", { predictor:"Ben Cowen", date, cowenGrade, appGrade, actualPriceAtResolution, magnitude });
+    showBanner("Graded — see the Performance tab.", "success");
+    toggleGradeInline(date);
+  } catch(err){ showBanner(err.message, "error"); }
+}
+
+/* ---- Grade the current App Hypothesis (only shown when PlayedOut/Invalidated) ---- */
+function toggleGradeHypothesis(){ $("#grade-hypo-inline").classList.toggle("open"); }
+async function submitGradeHypothesis(){
+  const finalDirection = $("#gh-direction").value;
+  const finalTarget = +$("#gh-target").value;
+  const actualPriceAtResolution = +$("#gh-price").value;
+  const magnitude = +$("#gh-mag").value;
+  const hit = $("#gh-hit").value;
+  try{
+    await postJson("/api/resolve", { predictor:"App", finalDirection, finalTarget, actualPriceAtResolution, hit, magnitude });
+    showBanner("Graded — see the Performance tab.", "success");
+    toggleGradeHypothesis();
+  } catch(err){ showBanner(err.message, "error"); }
+}
+
+/* ---- Log Call modal — role=dialog, Escape-to-close, focus trap, backdrop-click-close ---- */
+let lastFocusedBeforeModal = null;
+function modalKeydownHandler(e){
+  if(e.key === "Escape"){ closeLogCallModal(); return; }
+  if(e.key === "Tab"){
+    const modal = $("#log-call-modal");
+    const focusables = Array.from(modal.querySelectorAll("button, input, select, textarea")).filter(el=>!el.disabled && el.offsetParent !== null);
+    if(!focusables.length) return;
+    const first = focusables[0], last = focusables[focusables.length-1];
+    if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+}
+function openLogCallModal(){
+  lastFocusedBeforeModal = document.activeElement;
+  $("#log-call-backdrop").classList.add("open");
+  $("#log-call-error").style.display = "none";
+  if(!$("#lc-asof").value) $("#lc-asof").value = new Date().toISOString().slice(0,10);
+  $("#lc-predictor").focus();
+  document.addEventListener("keydown", modalKeydownHandler);
+}
+function closeLogCallModal(){
+  $("#log-call-backdrop").classList.remove("open");
+  document.removeEventListener("keydown", modalKeydownHandler);
+  if(lastFocusedBeforeModal) lastFocusedBeforeModal.focus();
+}
+$("#log-call-open").addEventListener("click", openLogCallModal);
+$("#log-call-cancel").addEventListener("click", closeLogCallModal);
+$("#log-call-backdrop").addEventListener("click", e=>{ if(e.target.id === "log-call-backdrop") closeLogCallModal(); });
+$("#lc-direction").querySelectorAll("button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    $("#lc-direction").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", x===b?"true":"false"));
+  });
+});
+$("#log-call-save").addEventListener("click", async ()=>{
+  const direction = $("#lc-direction").querySelector('[aria-pressed="true"]').dataset.dir;
+  const errEl = $("#log-call-error");
+  const asOfDate = $("#lc-asof").value, resolutionDate = $("#lc-resolution").value;
+  if(!asOfDate || !resolutionDate){
+    errEl.textContent = "As-of date and Resolution check-in date are required.";
+    errEl.style.display = "";
+    return;
+  }
+  const body = {
+    asset: $("#lc-asset").value,
+    direction,
+    priceTarget: $("#lc-target").value ? +$("#lc-target").value : null,
+    timeline: $("#lc-timeline").value || null,
+    notes: $("#lc-notes").value || null,
+    asOfDate,
+    conviction: $("#lc-conviction").value,
+    resolutionDate,
+    title: $("#lc-title").value || null,
+    sourceUrl: $("#lc-source").value || null,
+  };
+  try{
+    await postJson("/api/log-call", body);
+    closeLogCallModal();
+    refreshPerformance();
+    showBanner("Logged — see the ITC/Cowen section on the Briefing tab.", "success");
+  } catch(err){
+    errEl.textContent = err.message;
+    errEl.style.display = "";
+  }
+});
+
+} catch(err) {
+  console.error("UI wiring failed (core content above still rendered):", err);
+}
+</script>
+</body>
+</html>
