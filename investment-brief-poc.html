@@ -692,12 +692,12 @@
 /* DATA_START */
 const DATA = {
   "asset": "BTC",
-  "price": 64742,
+  "price": 64254,
   "ath": {
     "value": 126080,
     "date": "2025-10-06T10:57:42.000Z"
   },
-  "asOf": "Aug 06, 2026, 08:27 AM UTC",
+  "asOf": "Aug 07, 2026, 07:08 AM UTC",
   "freshness": {
     "level": "warn",
     "text": "Some inputs are stale: Funding rate. Hypothesis still updated (core cycle-position readings were fresh)."
@@ -706,10 +706,10 @@ const DATA = {
     "direction": "Corrective — lower lows into a projected Oct 2026 low",
     "state": "Revised",
     "horizon": "3–6 months",
-    "confidence": 64,
-    "confidenceNote": "No active conflicts between flagging readings and the cycle model this run.",
-    "narrative": "BTC is at $64,742, ~28 months past the last halving. It topped near $126,080 in Oct 2025. Both lenses rhyme. The ~4-year halving cycle projects a low around Oct 2026 (top + ~370 days). The midterm year is historically the weakest of the political cycle and has tended to bottom near Oct 2026. Weakest year of the political cycle. Markets have historically bottomed near October of the midterm year, followed by a strong 12-month rally — the S&P has not fallen in the 12 months after a midterm low since 1946. Macro backdrop — risk-on flags: NFCI, Net Liquidity Trend (13w), M2 Trend (YoY).",
-    "changedSince": "No material change since the last briefing.",
+    "confidence": 50,
+    "confidenceNote": "Capped: Liquidity conditions are tightening (Fed net liquidity / DXY / M2) while recession-risk signals are still quiet — an early-tightening backdrop rather than a confirmed risk-off regime. Worth weighing even though it's not a clean 'both agree' signal.",
+    "narrative": "BTC is at $64,254, ~28 months past the last halving. It topped near $126,080 in Oct 2025. Both lenses rhyme. The ~4-year halving cycle projects a low around Oct 2026 (top + ~370 days). The midterm year is historically the weakest of the political cycle and has tended to bottom near Oct 2026. Weakest year of the political cycle. Markets have historically bottomed near October of the midterm year, followed by a strong 12-month rally — the S&P has not fallen in the 12 months after a midterm low since 1946. Macro backdrop — risk-on flags: NFCI, M2 Trend (YoY). risk-off flags: Net Liquidity Trend (13w). Liquidity conditions are tightening (Fed net liquidity / DXY / M2) while recession-risk signals are still quiet — an early-tightening backdrop rather than a confirmed risk-off regime. Worth weighing even though it's not a clean 'both agree' signal.",
+    "changedSince": "confidence 64% → 50%.",
     "invalidation": [
       "Weekly close back above ~$68,000 (recent range reclaimed) → decline thesis likely over, stop shorting.",
       "MVRV Z-Score back above 4 → market re-heating, corrective thesis void.",
@@ -752,7 +752,7 @@ const DATA = {
         "sub": "≈ Apr 2028",
         "phase": "—",
         "kind": "anchor",
-        "note": "Projected from current block height (961,271) and the ~10min block target — 88,729 blocks remaining."
+        "note": "Projected from current block height (961,390) and the ~10min block target — 88,610 blocks remaining."
       }
     ],
     "analogue": "You are here ≈ <b>post-top decline — mid-2018 and mid-2022</b>.",
@@ -772,22 +772,22 @@ const DATA = {
       "hi": "> 0.2 · tight / risk-off",
       "context": "Looser than average financial conditions — risk-on tailwind.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.332Z",
+      "asOf": "2026-08-07T07:08:16.076Z",
       "flagging": true
     },
     {
       "name": "Net Liquidity Trend (13w)",
       "tf": "WALCL−RRP−TGA",
       "tier": "macro",
-      "value": "+7.3%",
-      "raw": 0.07299757577033915,
-      "zone": "green",
-      "pos": 0.8649878788516957,
+      "value": "-3.4%",
+      "raw": -0.033894551378041725,
+      "zone": "red",
+      "pos": 0.33052724310979137,
       "lo": "falling · risk-off headwind",
       "hi": "rising · risk-on tailwind",
-      "context": "Rising — Fed net liquidity (balance sheet minus reverse repo minus TGA) expanding, a risk-on tailwind.",
+      "context": "Falling — Fed net liquidity contracting, a risk-off headwind.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.409Z",
+      "asOf": "2026-08-07T07:08:16.436Z",
       "flagging": true
     },
     {
@@ -802,22 +802,22 @@ const DATA = {
       "hi": "> 2% YoY · expansion, loosening",
       "context": "Money supply expanding YoY — loosening, risk-on tailwind.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.413Z",
+      "asOf": "2026-08-07T07:08:16.097Z",
       "flagging": true
     },
     {
       "name": "MVRV Z-Score",
       "tf": "cycle",
       "tier": "crypto",
-      "value": "0.39",
-      "raw": 0.3918,
+      "value": "0.41",
+      "raw": 0.4103,
       "zone": "amber",
-      "pos": 0.05597142857142857,
+      "pos": 0.058614285714285716,
       "lo": "0 · undervalued",
       "hi": "7+ · euphoria",
       "context": "Nearer the low band than the high — historically closer to accumulation than distribution.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.103Z",
+      "asOf": "2026-08-07T07:08:16.233Z",
       "flagging": false
     },
     {
@@ -825,29 +825,29 @@ const DATA = {
       "tf": "cycle",
       "tier": "crypto",
       "value": "0.19",
-      "raw": 0.1909,
+      "raw": 0.1863,
       "zone": "amber",
-      "pos": 0.35272,
+      "pos": 0.34904,
       "lo": "<0 · capitulation",
       "hi": ">0.75 · euphoria",
       "context": "Fear band — a declining NUPL off a top is a normal post-top bleed, not necessarily a top forming.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.129Z",
+      "asOf": "2026-08-07T07:08:16.223Z",
       "flagging": false
     },
     {
       "name": "Puell Multiple",
       "tf": "cycle",
       "tier": "crypto",
-      "value": "0.74",
-      "raw": 0.7408,
+      "value": "0.67",
+      "raw": 0.6715,
       "zone": "amber",
-      "pos": 0.11913513513513514,
+      "pos": 0.10040540540540539,
       "lo": "0.3 · miner capitulation",
       "hi": "4 · top zone (no reliable top signal)",
       "context": "Below 1 — miners under pressure.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.144Z",
+      "asOf": "2026-08-07T07:08:16.249Z",
       "flagging": false
     },
     {
@@ -855,29 +855,29 @@ const DATA = {
       "tf": "cycle",
       "tier": "crypto",
       "value": "no cross · 59% gap",
-      "raw": 0.5895471586307816,
+      "raw": 0.5894479603163889,
       "zone": "green",
       "pos": 0,
       "lo": "wide gap",
       "hi": "cross · top signal",
       "context": "Gap between 111DMA and 350DMA×2 — no top signal currently.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.413Z",
+      "asOf": "2026-08-07T07:08:16.436Z",
       "flagging": false
     },
     {
       "name": "RSI",
       "tf": "weekly",
       "tier": "crypto",
-      "value": "41",
-      "raw": 40.574908591880515,
+      "value": "39",
+      "raw": 39.26195016330752,
       "zone": "amber",
-      "pos": 0.40574908591880515,
+      "pos": 0.3926195016330752,
       "lo": "30 · oversold",
       "hi": "70 · overbought",
       "context": "Below/near midline — room to move either direction.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.413Z",
+      "asOf": "2026-08-07T07:08:16.437Z",
       "flagging": false
     },
     {
@@ -890,7 +890,7 @@ const DATA = {
       "pos": 0.35156000000000004,
       "lo": "negative · shorts pay",
       "hi": "high positive · longs crowded",
-      "context": "STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). Last known value as of 2026-07-14T06:14:57.109Z: Positive — longs paying, some crowding risk.",
+      "context": "STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). STALE (fetch failed: HTTP 451  — https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT — {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received t). Last known value as of 2026-07-14T06:14:57.109Z: Positive — longs paying, some crowding risk.",
       "stale": true,
       "asOf": "2026-07-14T06:14:57.109Z",
       "flagging": false
@@ -899,30 +899,30 @@ const DATA = {
       "name": "RHODL Ratio",
       "tf": "cycle",
       "tier": "crypto",
-      "value": "1,224",
-      "raw": 1223.6209,
+      "value": "1,170",
+      "raw": 1169.7832,
       "zone": "amber",
-      "pos": 0.455777813633528,
+      "pos": 0.446007060418668,
       "lo": "~350 (p10) · bottom accumulation",
       "hi": "~5,000 (p90) · euphoric top",
       "context": "Mid-range — no extreme in holder-cohort behavior right now.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.161Z",
+      "asOf": "2026-08-07T07:08:16.249Z",
       "flagging": false
     },
     {
       "name": "Fear & Greed Index",
       "tf": "daily",
       "tier": "crypto",
-      "value": "25 · Extreme Fear",
-      "raw": 25,
+      "value": "29 · Fear",
+      "raw": 29,
       "zone": "amber",
-      "pos": 0.25,
+      "pos": 0.29,
       "lo": "<25 · extreme fear",
       "hi": ">75 · extreme greed",
       "context": "Neither extreme — dormant, not counted as evidence.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.017Z",
+      "asOf": "2026-08-07T07:08:15.954Z",
       "flagging": false
     },
     {
@@ -937,22 +937,22 @@ const DATA = {
       "hi": "≥0.50 · recession very likely started",
       "context": "Below trigger — no recession signal from this indicator right now.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.366Z",
+      "asOf": "2026-08-07T07:08:15.966Z",
       "flagging": false
     },
     {
       "name": "Yield Curve Spread",
       "tf": "10Y-2Y",
       "tier": "macro",
-      "value": "0.45",
-      "raw": 0.45,
+      "value": "0.44",
+      "raw": 0.44,
       "zone": "amber",
-      "pos": 0.4875,
+      "pos": 0.485,
       "lo": "<0 · inverted",
       "hi": "un-inversion watched separately",
       "context": "Not inverted — normal curve shape.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.290Z",
+      "asOf": "2026-08-07T07:08:16.053Z",
       "flagging": false
     },
     {
@@ -967,20 +967,20 @@ const DATA = {
       "hi": "rising · dollar strength, headwind",
       "context": "Roughly flat over the trailing 13 weeks.",
       "stale": false,
-      "asOf": "2026-08-06T08:27:50.402Z",
+      "asOf": "2026-08-07T07:08:16.029Z",
       "flagging": false
     }
   ],
-  "conflict": null,
+  "conflict": "Liquidity conditions are tightening (Fed net liquidity / DXY / M2) while recession-risk signals are still quiet — an early-tightening backdrop rather than a confirmed risk-off regime. Worth weighing even though it's not a clean 'both agree' signal.",
   "suggestions": [
     {
       "archetype": "D",
       "dir": "Short",
       "tagline": "Early cycle-window positioning (pre-low)",
-      "entry": 65000,
+      "entry": 64000,
       "invalidation": 83000,
       "target": 32000,
-      "rationale": "Still in Decline with no bounce/breakdown trigger yet, but the convergence low window is ~46 days out. Position short into the final leg down near $65,000; invalidation on a structure reclaim ($83,000). Acting on the cycle read itself, ahead of a price trigger.",
+      "rationale": "Still in Decline with no bounce/breakdown trigger yet, but the convergence low window is ~45 days out. Position short into the final leg down near $64,000; invalidation on a structure reclaim ($83,000). Acting on the cycle read itself, ahead of a price trigger.",
       "gateReason": "short admitted — not a capitulation spike, not a breakdown into recovery structure"
     }
   ],
@@ -1116,7 +1116,7 @@ const DATA = {
         "note": "Direction and rough timing agree (early-Q4 low estimate sits inside the app's Sep-Nov convergence window), though Cowen's own hedge reads slightly less committed. No BTC price levels given in this video to compare against the app's suggestion."
       }
     },
-    "daysSinceLogged": 10,
+    "daysSinceLogged": 11,
     "entryCount": 5,
     "agreementTally": {
       "agree": 4,
@@ -1186,7 +1186,7 @@ const DATA = {
     "resolvedCalls": []
   },
   "ledger": {
-    "priceDataAsOf": "2026-08-06T08:27:49.511Z",
+    "priceDataAsOf": "2026-08-07T07:08:15.371Z",
     "priceDataAvailable": true,
     "entries": [
       {
@@ -1227,8 +1227,8 @@ const DATA = {
         "status": "admitted",
         "regimeAtFirstSeen": "bear_grind",
         "firstSeenDate": "2026-07-24",
-        "lastSeenDate": "2026-08-06",
-        "occurrences": 14,
+        "lastSeenDate": "2026-08-07",
+        "occurrences": 15,
         "generation": 1,
         "resolution": {
           "status": "still_open",
@@ -1291,13 +1291,13 @@ const DATA = {
     }
   },
   "rates": {
-    "aaveBorrowAPR": 0.003862,
-    "aaveSupplyAPR": 0.034602,
+    "aaveBorrowAPR": 0.003865,
+    "aaveSupplyAPR": 0.033118,
     "aaveLiqThreshold": 0.78,
     "fundingRate8h": 0.00002734
   },
   "live": true,
-  "generatedAt": "2026-08-06T08:27:49.511Z",
+  "generatedAt": "2026-08-07T07:08:15.371Z",
   "isPublicBuild": true
 };
 /* DATA_END */
